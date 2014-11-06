@@ -7,7 +7,11 @@
 //
 
 
-#include "reads_compression.h"
+#include "read_compression.h"
+
+/************************
+ * Compress the read
+ **********************/
 
 
 

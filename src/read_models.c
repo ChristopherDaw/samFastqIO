@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Mikel Hernaez. All rights reserved.
 //
 
-#include "reads_stream.h"
+#include "read_models.h"
 
 
 int char2basepair(char c)

@@ -9,8 +9,6 @@
 #ifndef __XC_s2fastqIO__reads_stream__
 #define __XC_s2fastqIO__reads_stream__
 
-#include <stdio.h>
-#include <ctype.h>
 #include "stream_model.h"
 
 #define MAX_ALPHA 5000000
@@ -41,6 +39,12 @@ int char2basepair(char c);
 int basepair2char(enum BASEPAIR c);
 char bp_complement(char c);
 
-
+stream_model *initialize_stream_model_flag(uint32_t rescale);
+stream_model* initialize_stream_model_pos(uint32_t rescale);
+stream_model* initialize_stream_model_match(uint32_t rescale);
+stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale);
+stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t rescale);
+stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale);
+stream_model* initialize_stream_model_chars(uint32_t rescale);
 
 #endif /* defined(__XC_s2fastqIO__reads_stream__) */
