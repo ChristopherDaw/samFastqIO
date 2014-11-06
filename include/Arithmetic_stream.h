@@ -16,27 +16,6 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct stream_stats_t {
-    uint32_t *counts;
-    uint32_t alphabetCard;
-    uint32_t step;
-    uint32_t n;
-    uint32_t rescale;
-} *stream_stats;
-
-typedef struct ppm0_stream_stats_t{
-    
-    int32_t *alphabet;
-    uint32_t *counts;
-    int32_t *alphaMap;
-    uint8_t *alphaExist;
-    uint32_t alphabetCard;
-    uint32_t step;
-    uint32_t n;
-    uint32_t rescale;
-    
-}*ppm0_stream_stats;
-
 typedef struct io_stream_t {
 
     FILE *fp;
@@ -77,4 +56,5 @@ void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t
 uint64_t encoder_last_step(Arithmetic_stream a);
 void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX,  uint32_t cumCountX_1, uint32_t n);
 uint64_t arithmetic_get_symbole_range(Arithmetic_stream a, uint32_t n);
+
 #endif

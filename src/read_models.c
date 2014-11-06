@@ -9,6 +9,43 @@
 #include "reads_stream.h"
 
 
+int char2basepair(char c)
+{
+    switch(c)
+    {
+        case 'A': return 0;
+        case 'C': return 1;
+        case 'G': return 2;
+        case 'T': return 3;
+        default: return 4;
+    }
+}
+
+int basepair2char(enum BASEPAIR c)
+{
+    switch(c)
+    {
+        case 0: return 'A';
+        case 1: return 'C';
+        case 2: return 'G';
+        case 3: return 'T';
+        default: return 'N';
+    }
+}
+
+char bp_complement(char c){
+    
+    switch(c)
+    {
+        case 'A': return 'T';
+        case 'C': return 'G';
+        case 'G': return 'C';
+        case 'T': return 'A';
+        default: return c;
+    }
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                      //
 //                                                                                      //
@@ -17,17 +54,17 @@
 //                                                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////
 
-stream_stats *initialize_stream_stats_flag(uint32_t rescale){
+stream_model *initialize_stream_model_flag(uint32_t rescale){
     
     uint32_t i = 0;
     uint32_t context_size = 1;
     uint32_t counts_size = 8;
     
-    stream_stats *s = (stream_stats*) calloc(context_size, sizeof(stream_stats));
+    stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
     
     for (i = 0; i < context_size; i++) {
     
-        s[i] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+        s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
         // Allocate memory
         s[i]->counts = (uint32_t*) calloc(counts_size, sizeof(uint32_t));
@@ -53,13 +90,13 @@ stream_stats *initialize_stream_stats_flag(uint32_t rescale){
     
 }
 
-ppm0_stream_stats* initialize_stream_stats_pos(uint32_t rescale){
+stream_model* initialize_stream_model_pos(uint32_t rescale){
     
-    ppm0_stream_stats *s;
+    stream_model *s;
     
-    s = (ppm0_stream_stats*) calloc(1, sizeof(ppm0_stream_stats));
+    s = (stream_model*) calloc(1, sizeof(stream_model));
     
-    s[0] = (ppm0_stream_stats) calloc(1, sizeof(struct ppm0_stream_stats_t));
+    s[0] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
     // Allocate memory
     s[0]->alphabet = (int32_t *) calloc(MAX_CARDINALITY + 2, sizeof(int32_t));
@@ -92,16 +129,16 @@ ppm0_stream_stats* initialize_stream_stats_pos(uint32_t rescale){
     
 }
 
-stream_stats* initialize_stream_stats_match(uint32_t rescale){
+stream_model* initialize_stream_model_match(uint32_t rescale){
     
     uint32_t i = 0;
     uint32_t context_size = 256;
     
-    stream_stats *s = (stream_stats*) calloc(context_size, sizeof(stream_stats));
+    stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
     
     for (i = 0; i < context_size; i++) {
         
-        s[i] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+        s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
         
         // Allocate memory
         s[i]->counts = (uint32_t*) calloc(8, sizeof(uint32_t));
@@ -130,16 +167,15 @@ stream_stats* initialize_stream_stats_match(uint32_t rescale){
     return s;
     
 }
-
-stream_stats* initialize_stream_stats_S(uint32_t readLength, uint32_t rescale){
+stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale){
     
-    stream_stats *s;
+    stream_model *s;
     
     uint32_t i = 0;
     
-    s = (stream_stats*) calloc(1, sizeof(stream_stats));
+    s = (stream_model*) calloc(1, sizeof(stream_model));
     
-    s[0] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+    s[0] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
     // Allocate memory
     s[0]->counts = (uint32_t*) calloc(readLength + 2, sizeof(uint32_t));
@@ -165,15 +201,15 @@ stream_stats* initialize_stream_stats_S(uint32_t readLength, uint32_t rescale){
     
 }
 
-stream_stats* initialize_stream_stats_I(uint32_t readLength, uint32_t rescale){
+stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t rescale){
     
-    stream_stats *s;
+    stream_model *s;
     
-    s = (stream_stats*) calloc(1, sizeof(stream_stats));
+    s = (stream_model*) calloc(1, sizeof(stream_model));
     
     uint32_t i = 0;
     
-    s[0] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+    s[0] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
     // Allocate memory
     s[0]->counts = (uint32_t*) calloc(readLength + 2, sizeof(uint32_t));
@@ -199,19 +235,19 @@ stream_stats* initialize_stream_stats_I(uint32_t readLength, uint32_t rescale){
     
 }
 
-stream_stats* initialize_stream_stats_var(uint32_t readLength, uint32_t rescale){
+stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale){
     
-    stream_stats* s;
+    stream_model* s;
     
     uint32_t i = 0, j = 0;
     
     uint32_t num_models = 65536;
     
-    s = (stream_stats*) calloc(num_models, sizeof(stream_stats));
+    s = (stream_model*) calloc(num_models, sizeof(stream_model));
     
     for (j = 0; j < num_models; j++) {
         
-        s[j] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+        s[j] = (stream_model) calloc(1, sizeof(struct stream_model_t));
         
         // Allocate memory
         s[j]->counts = (uint32_t*) calloc(readLength + 2, sizeof(uint32_t));
@@ -238,17 +274,17 @@ stream_stats* initialize_stream_stats_var(uint32_t readLength, uint32_t rescale)
     
 }
 
-stream_stats* initialize_stream_stats_char(uint32_t rescale){
+stream_model* initialize_stream_model_chars(uint32_t rescale){
     
-    stream_stats* s;
+    stream_model* s;
     
-    s = (stream_stats*) calloc(6, sizeof(stream_stats));
+    s = (stream_model*) calloc(6, sizeof(stream_model));
     
     uint32_t i = 0, j;
     
     for (j = 0; j < 6; j++) {
         
-        s[j] = (stream_stats) calloc(1, sizeof(struct stream_stats_t));
+        s[j] = (stream_model) calloc(1, sizeof(struct stream_model_t));
         
         // Allocate memory
         s[j]->counts = (uint32_t*) calloc(16, sizeof(uint32_t));
@@ -300,3 +336,24 @@ stream_stats* initialize_stream_stats_char(uint32_t rescale){
     return s;
     
 }
+
+read_models alloc_read_models_t(uint32_t read_length){
+    
+    uint32_t rescale = 1 << 22;
+    
+    read_models rtn = calloc(1, sizeof(struct read_models_t));
+    
+    rtn->read_length = read_length;
+    
+    rtn->flag = initialize_stream_model_flag(rescale);
+    rtn->pos = initialize_stream_model_pos(rescale);
+    rtn->match = initialize_stream_model_match(rescale);
+    rtn->snps = initialize_stream_model_snps(rtn->read_length, rescale);
+    rtn->indels = initialize_stream_model_indels(rtn->read_length, rescale);
+    rtn->var = initialize_stream_model_var(rtn->read_length, rescale);
+    rtn->chars = initialize_stream_model_chars(rescale);
+    
+    
+    return rtn;
+}
+
