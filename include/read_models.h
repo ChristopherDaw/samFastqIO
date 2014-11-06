@@ -46,5 +46,6 @@ stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale
 stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_chars(uint32_t rescale);
+read_models alloc_read_models_t(uint32_t read_length);
 
 #endif /* defined(__XC_s2fastqIO__reads_stream__) */

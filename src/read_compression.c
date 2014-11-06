@@ -12,7 +12,16 @@
 /************************
  * Compress the read
  **********************/
+uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLine){
+    
+    int tempF, tempP;
+    // Compress sam line
+    tempF = compress_flag(as, models->flag, samLine->invFlag);
+    tempP = compress_pos(as, models->pos, samLine->pos);
+    compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, tempP, tempF);
 
+    return 1;
+}
 
 
 /***********************
@@ -37,6 +46,103 @@ uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag){
     
     return x;
     
+}
+
+/***********************
+ * Compress the Position
+ **********************/
+uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
+    
+    static uint32_t prevPos = 0;
+    enum {SMALL_STEP = 0, BIG_STEP = 1};
+    int i = 0;
+    int32_t x = 0;
+    
+    // TODO diferent update models for updating -1 and already seen symbols
+    // i.e., SMALL_STEP and BIG_STEP
+    
+    // Check if we are changing chromosomes.
+    if (pos < prevPos) {
+        
+        cumsumP = 0;
+        for (i=0; i<MAX_BP_CHR; i++){
+            snpInRef[i] = 0;
+        }
+        
+        // Send -1 to the Arithmetic Stream
+        send_value_to_as(as, P[0], -1);
+        
+        // Update model
+        update_model(P[0], -1);
+        
+        // TODO Send a -1 to A,
+        //fprintf(P->os->fosA, "%d\n", -1);
+        
+        // Compress the position
+        x = pos;
+        if (P[0]->alphaExist[x]){
+            // Send x to the Arithmetic Stream
+            send_value_to_as(as, P[0], P[0]->alphaMap[x]);
+            // Update model
+            update_model(P[0], P[0]->alphaMap[x]);
+        }
+        else{
+            
+            // Send -1 to the Arithmetic Stream
+            send_value_to_as(as, P[0], -1);
+            
+            // Update model
+            update_model(P[0], -1);
+            
+            // TODO Send the new letter to the alphabet stream
+            //fprintf(P->os->fosA, "%d\n", x);
+            
+            // Update the statistics of the alphabet for x
+            P[0]->alphabet[P[0]->alphabetCard] = x;
+            P[0]->alphaMap[x] = P[0]->alphabetCard;
+            P[0]->alphaExist[x] = 1;
+            // Update model
+            update_model(P[0], P[0]->alphabetCard++);
+        }
+        
+        
+        prevPos = pos;
+        
+        return x;
+    }
+    
+    
+    // Compress the position diference
+    x = pos - prevPos;
+    
+    if (P[0]->alphaExist[x]){
+        // Send x to the Arithmetic Stream
+        send_value_to_as(as, P[0], P[0]->alphaMap[x]);
+        // Update model
+        update_model(P[0], P[0]->alphaMap[x]);
+    }
+    else{
+        
+        // Send -1 to the Arithmetic Stream
+        send_value_to_as(as, P[0], -1);
+        
+        // Update model
+        update_model(P[0], -1);
+        
+        // TODO Send the new letter to the alphabet stream
+        //fprintf(P->os->fosA, "%d\n", x);
+        
+        // Update the statistics of the alphabet for x
+        P[0]->alphabet[P[0]->alphabetCard] = x;
+        P[0]->alphaMap[x] = P[0]->alphabetCard;
+        P[0]->alphaExist[x] = 1;
+        // Update model
+        update_model(P[0], P[0]->alphabetCard++);
+    }
+    
+    prevPos = pos;
+    
+    return x;
 }
 
 /****************************
