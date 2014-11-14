@@ -9,7 +9,7 @@
 #ifndef XC_s2fastqIO_Arithmetic_stream_h
 #define XC_s2fastqIO_Arithmetic_stream_h
 
-#define IO_STREAM_BUF_LEN 1024
+#define IO_STREAM_BUF_LEN 2048
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +56,6 @@ Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction);
 void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t cumCountX, uint32_t n);
 uint64_t encoder_last_step(Arithmetic_stream a);
 void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX,  uint32_t cumCountX_1, uint32_t n);
-uint64_t arithmetic_get_symbole_range(Arithmetic_stream a, uint32_t n);
+uint32_t arithmetic_get_symbol_range(Arithmetic_stream a, uint32_t n);
 
 #endif

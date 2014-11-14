@@ -159,7 +159,9 @@ Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction) {
     a->l = 0;
     a->u = (1 << m) - 1;
     
-    a->ios = alloc_io_stream(NULL, direction);
+    FILE *ftemp = fopen("/tmp/comp_test.ido", "w");
+    
+    a->ios = alloc_io_stream(ftemp, direction);
     
     return a;
 }
@@ -264,26 +266,24 @@ uint64_t encoder_last_step(Arithmetic_stream a) {
     return a->ios->written;
 }
 
-uint64_t arithmetic_get_symbole_range(Arithmetic_stream a, uint32_t n){
+uint32_t arithmetic_get_symbol_range(Arithmetic_stream a, uint32_t n){
     
-    uint64_t range, tagGap, subRange;
+    uint64_t range, tagGap;
     
     range = a->u - a->l + 1;
     tagGap = a->t - a->l + 1;
     
-    subRange = (tagGap * n - 1) / range;
+    return (uint32_t)(tagGap * n - 1) / range;
     
     //while (subRange >= cumCount)
       //  cumCount += stats->counts[k++];
     
     //x = --k;
     
-    return subRange;
-    
 }
 
-void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX,  uint32_t cumCountX_1, uint32_t n) {
-    uint64_t range = 0, tagGap = 0;
+void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX_1,  uint32_t cumCountX, uint32_t n) {
+    uint64_t range = 0;
     
     uint8_t msbU = 0, msbL = 0, E1_E2 = 0, E3 = 0, smsbL = 0, smsbU = 0;
     
@@ -293,9 +293,8 @@ void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX,  uint32_t 
     uint32_t msb_clear_mask = (1 << msb_shift) - 1;
     
     range = a->u - a->l + 1;
-    tagGap = a->t - a->l + 1;
     
-    // @todo figure this out
+    //tagGap = a->t - a->l + 1;
     //subRange = (uint32_t)((tagGap * stats->n - 1) / range);
     //while (subRange >= cumCount)
       //  cumCount += stats->counts[k++];

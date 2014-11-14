@@ -27,5 +27,6 @@ typedef struct stream_model_t {
 } *stream_model;
 
 uint32_t update_model(stream_model stats, int32_t x);
-void send_value_to_as(Arithmetic_stream as, stream_model model, uint32_t x);
+void send_value_to_as(Arithmetic_stream as, stream_model model, int32_t x);
+int read_value_from_as(Arithmetic_stream as, stream_model model);
 #endif

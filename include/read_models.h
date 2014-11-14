@@ -17,6 +17,7 @@
 typedef struct read_models_t{
     stream_model *flag;
     stream_model *pos;
+    stream_model *pos_alpha;
     stream_model *match;
     stream_model *snps;
     stream_model *indels;
@@ -41,6 +42,7 @@ char bp_complement(char c);
 
 stream_model *initialize_stream_model_flag(uint32_t rescale);
 stream_model* initialize_stream_model_pos(uint32_t rescale);
+stream_model* initialize_stream_model_pos_alpha(uint32_t rescale);
 stream_model* initialize_stream_model_match(uint32_t rescale);
 stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t rescale);

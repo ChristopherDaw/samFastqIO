@@ -16,8 +16,8 @@ uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLin
     
     int tempF, tempP;
     // Compress sam line
+    tempP = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
     tempF = compress_flag(as, models->flag, samLine->invFlag);
-    tempP = compress_pos(as, models->pos, samLine->pos);
     compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, tempP, tempF);
 
     return 1;
@@ -33,7 +33,7 @@ uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag){
     // In this case we are just compressing the binary information of whether the
     // read is in reverse or not. we use F[0] as there is no context for the flag.
     
-    int x = 0;
+    uint16_t x = 0;
     
     x = flag << 11;
     x >>= 15;
@@ -48,10 +48,48 @@ uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag){
     
 }
 
+/***********************************
+ * Compress the Alphabet of Position
+ ***********************************/
+uint32_t compress_pos_alpha(Arithmetic_stream as, stream_model *PA, uint32_t x){
+    
+    uint32_t Byte = 0;
+    
+    // we encode byte per byte i.e. x = [B0 B1 B2 B3]
+    
+    // Send B0 to the Arithmetic Stream using the alphabet model
+    Byte = x >> 24;
+    send_value_to_as(as, PA[0], Byte);
+    // Update model
+    update_model(PA[0], Byte);
+    
+    // Send B1 to the Arithmetic Stream using the alphabet model
+    Byte = (x & 0x00ff0000) >> 16;
+    send_value_to_as(as, PA[1], Byte);
+    // Update model
+    update_model(PA[1], Byte);
+    
+    // Send B2 to the Arithmetic Stream using the alphabet model
+    Byte = (x & 0x0000ff00) >> 8;
+    send_value_to_as(as, PA[2], Byte);
+    // Update model
+    update_model(PA[2], Byte);
+    
+    // Send B3 to the Arithmetic Stream using the alphabet model
+    Byte = (x & 0x000000ff);
+    send_value_to_as(as, PA[3], Byte);
+    // Update model
+    update_model(PA[3], Byte);
+    
+    return 1;
+    
+    
+}
+
 /***********************
  * Compress the Position
  **********************/
-uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
+uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint32_t pos){
     
     static uint32_t prevPos = 0;
     enum {SMALL_STEP = 0, BIG_STEP = 1};
@@ -69,14 +107,14 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
             snpInRef[i] = 0;
         }
         
-        // Send -1 to the Arithmetic Stream
-        send_value_to_as(as, P[0], -1);
+        // Send 0 to the Arithmetic Stream
+        send_value_to_as(as, P[0], 0);
         
         // Update model
-        update_model(P[0], -1);
+        update_model(P[0], 0);
         
-        // TODO Send a -1 to A,
-        //fprintf(P->os->fosA, "%d\n", -1);
+        // Send CHR_CHANGE_FLAG to the Arithmetic Stream using the alphabet model
+        compress_pos_alpha(as, PA, CHR_CHANGE_FLAG);
         
         // Compress the position
         x = pos;
@@ -88,21 +126,23 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
         }
         else{
             
-            // Send -1 to the Arithmetic Stream
-            send_value_to_as(as, P[0], -1);
+            // Send 0 to the Arithmetic Stream
+            send_value_to_as(as, P[0], 0);
             
             // Update model
-            update_model(P[0], -1);
+            update_model(P[0], 0);
             
-            // TODO Send the new letter to the alphabet stream
-            //fprintf(P->os->fosA, "%d\n", x);
+            // Send the new letter to the Arithmetic Stream using the alphabet model
+            compress_pos_alpha(as, PA, x);
             
             // Update the statistics of the alphabet for x
-            P[0]->alphabet[P[0]->alphabetCard] = x;
-            P[0]->alphaMap[x] = P[0]->alphabetCard;
             P[0]->alphaExist[x] = 1;
+            P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
+            P[0]->alphabet[P[0]->alphabetCard] = x;
+            
+            
             // Update model
-            update_model(P[0], P[0]->alphabetCard++);
+            update_model(P[0], P[0]->alphabetCard);
         }
         
         
@@ -112,8 +152,8 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
     }
     
     
-    // Compress the position diference
-    x = pos - prevPos;
+    // Compress the position diference (+ 1 to reserve 0 for new symbols)
+    x = pos - prevPos + 1;
     
     if (P[0]->alphaExist[x]){
         // Send x to the Arithmetic Stream
@@ -123,21 +163,22 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, uint32_t pos){
     }
     else{
         
-        // Send -1 to the Arithmetic Stream
-        send_value_to_as(as, P[0], -1);
+        // Send 0 to the Arithmetic Stream
+        send_value_to_as(as, P[0], 0);
         
         // Update model
-        update_model(P[0], -1);
+        update_model(P[0], 0);
         
-        // TODO Send the new letter to the alphabet stream
-        //fprintf(P->os->fosA, "%d\n", x);
+        // Send the new letter to the Arithmetic Stream using the alphabet model
+        compress_pos_alpha(as, PA, x);
         
         // Update the statistics of the alphabet for x
-        P[0]->alphabet[P[0]->alphabetCard] = x;
-        P[0]->alphaMap[x] = P[0]->alphabetCard;
         P[0]->alphaExist[x] = 1;
+        P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
+        P[0]->alphabet[P[0]->alphabetCard] = x;
+        
         // Update model
-        update_model(P[0], P[0]->alphabetCard++);
+        update_model(P[0], P[0]->alphabetCard);
     }
     
     prevPos = pos;

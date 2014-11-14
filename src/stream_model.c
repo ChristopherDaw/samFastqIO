@@ -30,14 +30,14 @@ uint32_t update_model(stream_model model, int32_t x){
     return 1;
 }
 
-void send_value_to_as(Arithmetic_stream as, stream_model model, uint32_t x){
+void send_value_to_as(Arithmetic_stream as, stream_model model, int32_t x){
     
     uint32_t i = 0;
     
     uint32_t cumCountX_1 = 0, cumCountX = 0;
     
     // Compute the cumulative counts of x and x-1
-    assert(x < model->alphabetCard);
+    assert(x <= model->alphabetCard);
     
     for (i = 0; i < x; ++i) {
         cumCountX_1 += model->counts[i];
@@ -49,4 +49,37 @@ void send_value_to_as(Arithmetic_stream as, stream_model model, uint32_t x){
     // Send value to the arithmetic encoder
     arithmetic_encoder_step(as, cumCountX_1, cumCountX, model->n);
     
+}
+
+int read_value_from_as(Arithmetic_stream as, stream_model model){
+    
+    uint32_t i = 0;
+    
+    uint32_t cumCountX_1 = 0, cumCountX = 0, cumCount = 0, cumRange = 0;
+    
+    uint32_t x;
+    
+    // Decode the symbol x
+    cumRange = arithmetic_get_symbol_range(as, model->n);
+    
+    while (cumCount <= cumRange)
+      cumCount += model->counts[x++];
+    x--;
+
+    // Update the arithmetic encoder
+    
+    // Compute the cumulative counts of x and x-1
+    assert(x < model->alphabetCard);
+    
+    for (i = 0; i < x; ++i) {
+        cumCountX_1 += model->counts[i];
+    }
+    cumCountX = cumCountX_1 + model->counts[x];
+    
+    assert(cumCountX_1 < cumCountX);
+    
+    // update the arithmetic encoder
+    arithmetic_decoder_step(as, cumCountX_1, cumCountX, model->n);
+    
+    return x;
 }

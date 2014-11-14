@@ -99,31 +99,64 @@ stream_model* initialize_stream_model_pos(uint32_t rescale){
     s[0] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
     // Allocate memory
-    s[0]->alphabet = (int32_t *) calloc(MAX_CARDINALITY + 2, sizeof(int32_t));
-    s[0]->counts = (uint32_t*) calloc(MAX_CARDINALITY + 3, sizeof(uint32_t));
-    s[0]->alphaExist = (uint8_t*) calloc(MAX_ALPHA + 2, sizeof(uint8_t));
-    s[0]->alphaMap = (int32_t*) calloc(MAX_ALPHA + 2, sizeof(int32_t));
+    s[0]->alphabet = (int32_t *) calloc(MAX_CARDINALITY, sizeof(int32_t));
+    s[0]->counts = (uint32_t*) calloc(MAX_CARDINALITY, sizeof(uint32_t));
+    s[0]->alphaExist = (uint8_t*) calloc(MAX_ALPHA, sizeof(uint8_t));
+    s[0]->alphaMap = (int32_t*) calloc(MAX_ALPHA, sizeof(int32_t));
     
-    // We shift the pointers to consider -1 (new alpha).
-    s[0]->alphaMap += 1;
-    s[0]->alphaExist += 1;
-    s[0]->alphabet += 1;
-    // An extra for the cumcounts
-    s[0]->counts += 2;
-    
-    
+    // Initialize the alphabet assigning -1 to the bin 0 of the model
     s[0]->alphabetCard = 0;
-    s[0]->alphabet[-1] = -1;
-    s[0]->alphaMap[-1] = -1;
+    s[0]->alphabet[0] = -1;
+    s[0]->alphaMap[0] = -1;
     
-    s[0]->alphaExist[-1] = 1;
-    s[0]->counts[-1] = 1;
+    s[0]->alphaExist[0] = 1;
+    s[0]->counts[0] = 1;
     s[0]->n = 1;
     
     // STEP
     s[0]->step = 10;
     
     s[0]->rescale = rescale;
+    
+    return s;
+    
+}
+
+stream_model* initialize_stream_model_pos_alpha(uint32_t rescale){
+    
+    uint32_t i = 0, j = 0;
+    uint32_t context_size = 4;
+    
+    stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
+    
+    for (i = 0; i < context_size; i++) {
+        
+        s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
+        
+        // Allocate memory
+        s[i]->counts = (uint32_t*) calloc(257, sizeof(uint32_t));
+        
+        // An extra for the cumcounts
+        s[i]->counts += 1;
+        
+        s[i]->alphabetCard = 256;
+        
+        s[i]->n = 0;
+        for (j = 0; j < 256; j++) {
+            s[i]->counts[j] = 1;
+            s[i]->n += s[0]->counts[j];
+        }
+        
+        // STEP
+        s[i]->step = 10;
+        
+        //rescale bound
+        s[i]->rescale = rescale;
+    }
+    
+    
+    
+    
     
     return s;
     
@@ -346,6 +379,7 @@ read_models alloc_read_models_t(uint32_t read_length){
     rtn->read_length = read_length;
     
     rtn->flag = initialize_stream_model_flag(rescale);
+    rtn->pos_alpha = initialize_stream_model_pos_alpha(rescale);
     rtn->pos = initialize_stream_model_pos(rescale);
     rtn->match = initialize_stream_model_match(rescale);
     rtn->snps = initialize_stream_model_snps(rtn->read_length, rescale);
