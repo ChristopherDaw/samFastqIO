@@ -8,10 +8,50 @@
 
 #include "read_compression.h"
 
+
+//**************************************************************//
+//                                                              //
+//                  STORE REFERENCE IN MEMORY                   //
+//                                                              //
+//**************************************************************//
+int store_reference_in_memory(FILE* refFile){
+    uint32_t ch, letterCount;
+    char header[1024];
+    
+    reference = (char *) malloc(MAX_BP_CHR*sizeof(char));
+    
+    // ******* Read and Store Reference****** //
+    letterCount = 0;
+    
+    // Remove the header
+    fgets(header, sizeof(header), refFile);
+    
+    do{
+        ch = getc(refFile);
+        
+        if (ch !='\n')
+            reference[letterCount++] = toupper(ch);
+        
+        if(ch == '>' || ch == '@' || ch == EOF) break;
+        
+    }while (1);
+        
+    reference[letterCount] = '\0';
+    
+    reference = (char *) realloc(reference, letterCount);
+    
+    if (ch == EOF)
+        return END_GENOME_FLAG;
+    
+    return letterCount;
+    
+}
+
+
 /************************
  * Decompress the read
  **********************/
-uint32_t decompress_read(Arithmetic_stream as, read_models models, uint8_t **read, FILE *fastqFile){
+uint32_t decompress_read(Arithmetic_stream as, read_models models, char **read, FILE *fastqFile){
     
     int invFlag, tempP;
     
@@ -132,7 +172,7 @@ uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA)
         P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
         P[0]->alphabet[P[0]->alphabetCard] = x;
         
-        update_model(P[0], P[0]->alphabetCard++);
+        update_model(P[0], P[0]->alphabetCard);
     }
     
     else
@@ -162,7 +202,7 @@ uint32_t decompress_match(Arithmetic_stream a, stream_model *M, uint32_t P){
     
     
     // Compute Context
-    P = (P != 0)? 0:1;
+    P = (P != 1)? 0:1;
     //prevP = (prevP > READ_LENGTH)? READ_LENGTH:prevP;
     //prevP = (prevP > READ_LENGTH/4)? READ_LENGTH:prevP;
     
@@ -259,7 +299,7 @@ uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref
 /*****************************************
  * Reconstruct the read
  ******************************************/
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, uint8_t **read, FILE *fastqFile){
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char **read, FILE *fastqFile){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, delPos = 0, ctrPos = 0, snpPos = 0, insPos = 0;
     uint32_t currentPos = 0, prevIns = 0, prev_pos = 0, delta = 0, deltaPos = 0;
@@ -273,12 +313,12 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     
     enum BASEPAIR refbp;
     
-    char *tempRead = (char*)calloc(READ_LENGTH, sizeof(char));
+    char *tempRead = (char*)calloc(models->read_length, sizeof(char));
     
     if (pos < prevPos){
         deltaPos = pos;
     }else{
-        deltaPos = pos - prevPos;
+        deltaPos = pos - prevPos + 1;// deltaPos is 1-based.
     }
     prevPos = pos;
     
@@ -293,15 +333,15 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
         
         switch (invFlag) {
             case 0:
-                for (ctrPos=0; ctrPos<READ_LENGTH; ctrPos++)
+                for (ctrPos=0; ctrPos<models->read_length; ctrPos++)
                     fputc(reference[pos + ctrPos - 1],fastqFile);
                 
                 fprintf(fastqFile, "\n");
                 break;
                 
             case 1:
-                for (ctrPos=0; ctrPos<READ_LENGTH; ctrPos++)
-                    fputc(bp_complement( reference[pos + READ_LENGTH - 1 - ctrPos - 1] ),fastqFile);
+                for (ctrPos=0; ctrPos<models->read_length; ctrPos++)
+                    fputc(bp_complement( reference[pos + models->read_length - 1 - ctrPos - 1] ),fastqFile);
                 
                 fprintf(fastqFile, "\n");
                 break;
@@ -344,7 +384,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     
     
     // Fill up the rest of the read up to numIns
-    for (ctrPos = currentPos; ctrPos<READ_LENGTH - numIns; ctrPos++){
+    for (ctrPos = currentPos; ctrPos<models->read_length - numIns; ctrPos++){
         tempRead[currentPos] = reference[pos + currentPos - 1 + numDels];
         currentPos++;
     }
@@ -354,8 +394,10 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     prev_pos = 0;
     for (i = 0; i < numSnps; i++){
         
+        assert(currentPos < models->read_length);
+        
         // compute delta to next snp
-        delta = compute_delta_to_first_snp(prev_pos, READ_LENGTH);
+        delta = compute_delta_to_first_snp(prev_pos, models->read_length);
         delta = (delta << BITS_DELTA);
         
         snpPos = decompress_var(as, models->var, delta + prev_pos, invFlag);
@@ -389,7 +431,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
             }
             
             // write the rest of the read
-            for (ctrPos=currentPos; ctrPos<READ_LENGTH - numIns; ctrPos++)
+            for (ctrPos=currentPos; ctrPos < models->read_length - numIns; ctrPos++)
                 fputc(tempRead[currentPos],fastqFile), currentPos++;
             
             fprintf(fastqFile, "\n");
@@ -405,7 +447,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 prev_pos += insPos;
                 insPos += prevIns;
                 // move the read one position to the left (make room for the insertion)
-                for (ctrPos = READ_LENGTH - 1; ctrPos > insPos; ctrPos--)
+                for (ctrPos = models->read_length - 1; ctrPos > insPos; ctrPos--)
                     tempRead[ctrPos] = tempRead[ctrPos - 1];
                 // Add the insertion
                 tempRead[insPos] = decompress_chars(as, models->chars, O);
@@ -413,8 +455,8 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
             }
             
             // write the read inverted
-            for (ctrPos=0; ctrPos<READ_LENGTH; ctrPos++)
-                fputc(bp_complement(tempRead[READ_LENGTH - 1 - ctrPos]),fastqFile);
+            for (ctrPos=0; ctrPos < models->read_length; ctrPos++)
+                fputc(bp_complement(tempRead[ models->read_length - 1 - ctrPos]),fastqFile);
             fprintf(fastqFile, "\n");
             
             return 1;

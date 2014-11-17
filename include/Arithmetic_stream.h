@@ -17,6 +17,11 @@
 #include <assert.h>
 #include <ctype.h>
 
+#define COMPRESSION 0
+#define DECOMPRESSION 1
+#define ARITHMETIC_WORD_LENGTH 24
+
+
 typedef struct io_stream_t {
 
     FILE *fp;
@@ -49,6 +54,7 @@ void free_os_stream(struct io_stream_t *os);
 uint8_t stream_read_bit(struct io_stream_t *is);
 uint32_t stream_read_bits(struct io_stream_t *is, uint8_t len);
 void stream_write_bit(struct io_stream_t *os, uint8_t bit);
+void stream_write_bits(struct io_stream_t *os, uint32_t dw, uint8_t len);
 void stream_finish_byte(struct io_stream_t *os);
 void stream_write_buffer(struct io_stream_t *os);
 

@@ -57,7 +57,7 @@ int read_value_from_as(Arithmetic_stream as, stream_model model){
     
     uint32_t cumCountX_1 = 0, cumCountX = 0, cumCount = 0, cumRange = 0;
     
-    uint32_t x;
+    uint32_t x = 0;
     
     // Decode the symbol x
     cumRange = arithmetic_get_symbol_range(as, model->n);
@@ -69,7 +69,7 @@ int read_value_from_as(Arithmetic_stream as, stream_model model){
     // Update the arithmetic encoder
     
     // Compute the cumulative counts of x and x-1
-    assert(x < model->alphabetCard);
+    assert(x <= model->alphabetCard);
     
     for (i = 0; i < x; ++i) {
         cumCountX_1 += model->counts[i];

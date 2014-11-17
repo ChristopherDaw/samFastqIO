@@ -14,11 +14,14 @@
  **********************/
 uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLine){
     
-    int tempF, tempP;
+    int tempF, PosDiff, chrPos;
     // Compress sam line
-    tempP = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
-    tempF = compress_flag(as, models->flag, samLine->invFlag);
-    compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, tempP, tempF);
+    PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
+    //tempF = compress_flag(as, models->flag, samLine->invFlag);
+    tempF = compress_flag(as, models->flag, 0);
+    chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF);
+    
+    assert(samLine->pos  == chrPos);
 
     return 1;
 }
@@ -196,7 +199,7 @@ uint32_t compress_match(Arithmetic_stream a, stream_model *M, uint8_t match, uin
     
     
     // Compute Context
-    P = (P != 0)? 0:1;
+    P = (P != 1)? 0:1;
     //prevP = (prevP > READ_LENGTH)? READ_LENGTH:prevP;
     //prevP = (prevP > READ_LENGTH/4)? READ_LENGTH:prevP;
     
@@ -290,14 +293,14 @@ uint32_t compress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref,
 /*****************************************
  * Compress the edits
  ******************************************/
-uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t P, uint8_t flag){
+uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t deltaP, uint8_t flag){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, lastSnp = 1;
     int i = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
     uint32_t delta = 0;
     
     // pos in the reference
-    cumsumP = cumsumP + P;
+    cumsumP = cumsumP + deltaP - 1;// DeltaP is 1-based
     
     uint32_t Dels[MAX_READ_LENGTH];
     ins Insers[MAX_READ_LENGTH];
@@ -307,13 +310,13 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     
     uint32_t prev_pos = 0;
     
-    if(strcmp(edits, _readLength) == 0){
+    if(strcmp(edits, rs->_readLength) == 0){
         // The read matches perfectly.
-        compress_match(as, rs->match, 1, P);
-        return 0;
+        compress_match(as, rs->match, 1, deltaP);
+        return cumsumP;
     }
     
-    compress_match(as, rs->match, 0, P);
+    compress_match(as, rs->match, 0, deltaP);
     
     // The read does not match perfectly
     // Compute the edits
@@ -401,7 +404,7 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     }
     
     if (lastSnp != 0)
-        add_snps_to_array(edits, SNPs, &numSnps, READ_LENGTH + 1, read);
+        add_snps_to_array(edits, SNPs, &numSnps, rs->read_length + 1, read);
     
     
     // Compress the edits
@@ -425,7 +428,7 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     for (i = 0; i < numSnps; i++){
         
         // compute delta to next snp
-        delta = compute_delta_to_first_snp(prev_pos, READ_LENGTH);
+        delta = compute_delta_to_first_snp(prev_pos, rs->read_length);
         /*delta = READ_LENGTH + 2;
          for (j=0;j<READ_LENGTH - prev_pos; j++){
          if (snpInRef[cumsumP - 1 + j] == 1){
@@ -463,7 +466,7 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
     
     static unsigned int prevEditPtr = 0, cumPos = 0;
     
-    int pos = 0, tempPos = 0, ctr;
+    int pos = 0, tempPos = 0, ctr, numDigits;
     char ch = 0;
     
     uint8_t flag = 0;
@@ -473,14 +476,29 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
     while (*edits != 0 ) {
         
         pos = atoi(edits);
+        
+        //Get the number of digits (We assume readLength < 1000)
+        if (pos < 10)
+            numDigits = 1;
+        else if (pos < 100)
+            numDigits = 2;
+        else
+            numDigits = 3;
+        
         tempPos = pos;
         
         // if there are deletions after pos, we need to add those positions that come after the deletions
-        ctr = 0;
-        if ( isnumber(*(edits+1)) ) ctr = 2;
-        else ctr = 1;
+        ctr = numDigits;
+        /*ctr = 0;
+        if ( isnumber(*(edits+1)) ) {
+            // Check wether it has two or three digits
+            if ( isnumber(*(edits+2)) ) ctr = 3;
+            else ctr = 2;
+            }
+        else ctr = 1;*/
         ch = *(edits+ctr);
         ctr++;
+        
         while (ch == '^'){
             while (isnumber(*(edits+ctr)) == 0) {
                 ctr++;

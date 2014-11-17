@@ -377,6 +377,7 @@ read_models alloc_read_models_t(uint32_t read_length){
     read_models rtn = calloc(1, sizeof(struct read_models_t));
     
     rtn->read_length = read_length;
+    sprintf(rtn->_readLength, "%d", rtn->read_length);
     
     rtn->flag = initialize_stream_model_flag(rescale);
     rtn->pos_alpha = initialize_stream_model_pos_alpha(rescale);

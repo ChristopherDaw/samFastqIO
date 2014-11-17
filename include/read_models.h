@@ -24,6 +24,7 @@ typedef struct read_models_t{
     stream_model *var;
     stream_model *chars;
     uint32_t read_length;
+    char _readLength[4];
 }*read_models;
 
 // To store the model of the chars both in ref and target

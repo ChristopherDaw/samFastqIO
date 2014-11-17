@@ -159,7 +159,8 @@ Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction) {
     a->l = 0;
     a->u = (1 << m) - 1;
     
-    FILE *ftemp = fopen("/tmp/comp_test.ido", "w");
+    
+    FILE *ftemp = (direction == COMPRESSION)? fopen("/tmp/comp_test.ido", "w"):  fopen("/tmp/comp_test.ido", "r");
     
     a->ios = alloc_io_stream(ftemp, direction);
     
@@ -273,7 +274,7 @@ uint32_t arithmetic_get_symbol_range(Arithmetic_stream a, uint32_t n){
     range = a->u - a->l + 1;
     tagGap = a->t - a->l + 1;
     
-    return (uint32_t)(tagGap * n - 1) / range;
+    return (uint32_t)((tagGap * n - 1) / range);
     
     //while (subRange >= cumCount)
       //  cumCount += stats->counts[k++];

@@ -13,19 +13,16 @@
 #include "Arithmetic_stream.h"
 #include "sam_line.h"
 
+
+
 #define MAX_BP_CHR 300000000
 #define CHR_CHANGE_FLAG 0xffffffff
-#define END_GENOME_FLAG 0
+#define END_GENOME_FLAG 0xfffffff0
 
 //#define MAX_PATH_LENGTH 256
 //#define MAX_HEADER 512
 
 #define BITS_DELTA 7
-
-#define _modelize(a) a++
-
-uint32_t READ_LENGTH;
-char _readLength[4];
 
 char *reference;
 
@@ -78,6 +75,8 @@ uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos,
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
 uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLine);
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, uint8_t **read, FILE *fastqFile);
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char **read, FILE *fastqFile);
+uint32_t decompress_read(Arithmetic_stream as, read_models models, char **read, FILE *fastqFile);
+int store_reference_in_memory(FILE* refFile);
 
 #endif
