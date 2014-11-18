@@ -140,12 +140,12 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, u
             
             // Update the statistics of the alphabet for x
             P[0]->alphaExist[x] = 1;
-            P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
+            P[0]->alphaMap[x] = P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
             P[0]->alphabet[P[0]->alphabetCard] = x;
             
             
             // Update model
-            update_model(P[0], P[0]->alphabetCard);
+            update_model(P[0], P[0]->alphabetCard++);
         }
         
         
@@ -177,11 +177,11 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, u
         
         // Update the statistics of the alphabet for x
         P[0]->alphaExist[x] = 1;
-        P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
+        P[0]->alphaMap[x] = P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
         P[0]->alphabet[P[0]->alphabetCard] = x;
         
         // Update model
-        update_model(P[0], P[0]->alphabetCard);
+        update_model(P[0], P[0]->alphabetCard++);
     }
     
     prevPos = pos;
@@ -466,7 +466,7 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
     
     static unsigned int prevEditPtr = 0, cumPos = 0;
     
-    int pos = 0, tempPos = 0, ctr, numDigits;
+    int pos = 0, tempPos = 0, ctr;
     char ch = 0;
     
     uint8_t flag = 0;
@@ -477,35 +477,21 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
         
         pos = atoi(edits);
         
-        //Get the number of digits (We assume readLength < 1000)
-        if (pos < 10)
-            numDigits = 1;
-        else if (pos < 100)
-            numDigits = 2;
-        else
-            numDigits = 3;
-        
         tempPos = pos;
         
-        // if there are deletions after pos, we need to add those positions that come after the deletions
-        ctr = numDigits;
-        /*ctr = 0;
-        if ( isnumber(*(edits+1)) ) {
-            // Check wether it has two or three digits
-            if ( isnumber(*(edits+2)) ) ctr = 3;
-            else ctr = 2;
-            }
-        else ctr = 1;*/
+        ctr = compute_num_digits(pos);
         ch = *(edits+ctr);
         ctr++;
         
+        // if there are deletions after pos, we need to add those positions that come after the deletions
         while (ch == '^'){
             while (isnumber(*(edits+ctr)) == 0) {
                 ctr++;
             }
             tempPos += atoi(edits + ctr);
-            if ( isnumber(*(edits+ctr+1)) ) ctr += 2;
-            else ctr += 1;
+            
+            ctr += compute_num_digits(atoi(edits + ctr));
+            
             ch = *(edits+ctr);
             ctr++;
             if (ch == '\0'){
@@ -525,8 +511,12 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
             return cumPos;
         }
         
-        if ( isnumber(*(edits+1)) ) edits += 2, prevEditPtr += 2;
-        else edits += 1, prevEditPtr += 1;
+        tempPos = atoi(edits);
+        edits += compute_num_digits(tempPos);
+        prevEditPtr += compute_num_digits(tempPos);
+        
+        //if ( isnumber(*(edits+1)) ) edits += 2, prevEditPtr += 2;
+        //else edits += 1, prevEditPtr += 1;
         
         ch = *edits++, prevEditPtr++;
         
@@ -534,13 +524,19 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
             while (isnumber(*edits) == 0)
                 edits++, prevEditPtr++;
             pos += atoi(edits);
-            if ( isnumber(*(edits+1)) ) edits += 2, prevEditPtr += 2;
-            else edits += 1, prevEditPtr += 1;
+            
+            tempPos = atoi(edits);
+            edits += compute_num_digits(tempPos);
+            prevEditPtr += compute_num_digits(tempPos);
+            
+            //if ( isnumber(*(edits+1)) ) edits += 2, prevEditPtr += 2;
+            //else edits += 1, prevEditPtr += 1;
             ch = *edits++, prevEditPtr++;
         }
         
         if (ch == '\0')
             break;
+        
         cumPos += pos;
         
         SNPs[*numSnps].pos = pos;
@@ -572,4 +568,17 @@ uint32_t compute_delta_to_first_snp(uint32_t prevPos, uint32_t readLen){
     }
     
     return deltaOut;
+}
+
+uint32_t compute_num_digits(uint32_t x){
+    
+    //Get the number of digits (We assume readLength < 1000)
+    
+    if (x < 10)
+        return 1;
+    else if (x < 100)
+        return 2;
+    else
+        return 3;
+    
 }

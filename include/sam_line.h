@@ -24,6 +24,7 @@ typedef struct sam_line_t{
     char *cigar;
     char *edits;
     char *read;
+    char *QV;
     uint16_t invFlag;
     // int invFlag;
     int pos;

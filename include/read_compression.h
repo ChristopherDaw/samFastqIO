@@ -63,6 +63,7 @@ uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32
 uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t P, uint8_t flag);
 int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned int insertionPos, char *read);
 uint32_t compute_delta_to_first_snp(uint32_t prevPos, uint32_t readLen);
+uint32_t compute_num_digits(uint32_t x);
 
 // Prototypes for tghe decompression functions
 uint32_t decompress_flag(Arithmetic_stream a, stream_model *F);

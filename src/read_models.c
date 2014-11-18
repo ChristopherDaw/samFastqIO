@@ -105,7 +105,7 @@ stream_model* initialize_stream_model_pos(uint32_t rescale){
     s[0]->alphaMap = (int32_t*) calloc(MAX_ALPHA, sizeof(int32_t));
     
     // Initialize the alphabet assigning -1 to the bin 0 of the model
-    s[0]->alphabetCard = 0;
+    s[0]->alphabetCard = 1;
     s[0]->alphabet[0] = -1;
     s[0]->alphaMap[0] = -1;
     
@@ -372,7 +372,7 @@ stream_model* initialize_stream_model_chars(uint32_t rescale){
 
 read_models alloc_read_models_t(uint32_t read_length){
     
-    uint32_t rescale = 1 << 22;
+    uint32_t rescale = 1 << 20;
     
     read_models rtn = calloc(1, sizeof(struct read_models_t));
     
@@ -391,4 +391,3 @@ read_models alloc_read_models_t(uint32_t read_length){
     
     return rtn;
 }
-

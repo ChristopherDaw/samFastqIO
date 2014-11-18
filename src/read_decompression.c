@@ -67,6 +67,8 @@ uint32_t decompress_read(Arithmetic_stream as, read_models models, char **read, 
     
     invFlag = decompress_flag(as, models->flag);
     
+    assert(invFlag == 0);
+    
     reconstruct_read(as, models, tempP, invFlag, read, fastqFile);
     
     return 1;
@@ -169,10 +171,10 @@ uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA)
         
         // Update the statistics of the alphabet for x
         P[0]->alphaExist[x] = 1;
-        P[0]->alphaMap[x] = ++P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
+        P[0]->alphaMap[x] = P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
         P[0]->alphabet[P[0]->alphabetCard] = x;
         
-        update_model(P[0], P[0]->alphabetCard);
+        update_model(P[0], P[0]->alphabetCard++);
     }
     
     else

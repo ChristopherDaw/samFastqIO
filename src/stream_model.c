@@ -57,13 +57,20 @@ int read_value_from_as(Arithmetic_stream as, stream_model model){
     
     uint32_t cumCountX_1 = 0, cumCountX = 0, cumCount = 0, cumRange = 0;
     
-    uint32_t x = 0;
+    uint32_t x = 0, foo = 0;
+    
+    ////////
+    for (int i = 0; i < model->alphabetCard; i++)
+        foo += model->counts[i];
+    
+    assert(foo == model->n);
     
     // Decode the symbol x
     cumRange = arithmetic_get_symbol_range(as, model->n);
     
-    while (cumCount <= cumRange)
+    while (cumCount <= cumRange){
       cumCount += model->counts[x++];
+    }
     x--;
 
     // Update the arithmetic encoder

@@ -18,6 +18,7 @@ sam_line alloc_sam_line_t(){
     samLine->cigar = (char*) calloc(1, 4*MAX_READ_LENGTH);
     samLine->edits = (char*) calloc(1, 4*MAX_READ_LENGTH);
     samLine->read = (char*) calloc(1, 4*MAX_READ_LENGTH);
+    samLine->QV = (char*) calloc(1, 4*MAX_READ_LENGTH);
     
     return samLine;
     
@@ -77,6 +78,7 @@ uint8_t read_line_from_sam(struct sam_line_t *samLine, FILE *f){
                 
                 // QV sequence
                 token = strtok(NULL, "\t");
+                strcpy(samLine->QV, token);
                 
                 /* walk through AUX fields */
                 samLine->edits[0] = '$';
@@ -94,7 +96,7 @@ uint8_t read_line_from_sam(struct sam_line_t *samLine, FILE *f){
     }else{
         // firstCall = 0
         // Read compulsory fields
-        if (EOF!=fscanf(f, "%s %"SCNu16" %s %d %*d %s %*s %*d %*d %s %*s", samLine->identifier, &samLine->invFlag, samLine->refname, &samLine->pos, samLine->cigar, samLine->read)){
+        if (EOF!=fscanf(f, "%s %"SCNu16" %s %d %*d %s %*s %*d %*d %s %s", samLine->identifier, &samLine->invFlag, samLine->refname, &samLine->pos, samLine->cigar, samLine->read, samLine->QV)){
             thereIsLine = 1;
             // Read the AUX fields until end of line, and store the MD field
             while('\n'!=(ch=fgetc(f))){
