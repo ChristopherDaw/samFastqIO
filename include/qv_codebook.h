@@ -28,7 +28,6 @@ struct qv_options_t {
 	uint8_t verbose;
 	uint8_t stats;
 	uint8_t mode;
-	uint8_t clusters;
     uint8_t uncompressed;
     uint8_t distortion;
     char* uncompressed_name;
@@ -84,16 +83,7 @@ void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quant
 struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx);
 uint32_t find_state_encoding(struct quantizer_t *codebook, symbol_t value);
 
-// Meat of the implementation
-void calculate_statistics(struct quality_file_t *);
-double optimize_for_entropy(struct pmf_t *pmf, struct distortion_t *dist, double target, struct quantizer_t **lo, struct quantizer_t **hi, uint8_t verbose);
-void generate_codebooks(struct quality_file_t *info);
 
-// Master functions to handle codebooks in the output file
-void write_codebooks(FILE *fp, struct quality_file_t *info);
-void write_codebook(FILE *fp, struct cond_quantizer_list_t *quantizers);
-void read_codebooks(FILE *fp, struct quality_file_t *info);
-struct cond_quantizer_list_t *read_codebook(FILE *fp, struct quality_file_t *info);
 
 #define MAX_CODEBOOK_LINE_LENGTH 3366
 #define COPY_Q_TO_LINE(line, q, i, size) for (i = 0; i < size; ++i) { line[i] = q[i] + 33; }

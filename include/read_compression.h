@@ -9,10 +9,8 @@
 #ifndef XC_s2fastqIO_reads_compression_h
 #define XC_s2fastqIO_reads_compression_h
 
-#include "read_models.h"
 #include "Arithmetic_stream.h"
 #include "sam_line.h"
-
 
 
 #define MAX_BP_CHR 300000000

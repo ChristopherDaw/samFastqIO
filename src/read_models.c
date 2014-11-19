@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Mikel Hernaez. All rights reserved.
 //
 
-#include "read_models.h"
+#include "sam_line.h"
 
 
 int char2basepair(char c)
@@ -274,7 +274,7 @@ stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale)
     
     uint32_t i = 0, j = 0;
     
-    uint32_t num_models = 65536;
+    uint32_t num_models = 0xffff;
     
     s = (stream_model*) calloc(num_models, sizeof(stream_model));
     
@@ -370,6 +370,51 @@ stream_model* initialize_stream_model_chars(uint32_t rescale){
     
 }
 
+/**
+ * Initialize stats structures used for adaptive arithmetic coding based on
+ * the number of contexts required to handle the set of conditional quantizers
+ * that we have (one context per quantizer)
+ */
+stream_model *initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, uint32_t rescale) {
+    
+    stream_model *s;
+    uint32_t i = 0, j = 0, k = 0, model_idx = 0;
+    
+    uint32_t num_models = 0xffff;
+    
+    s = (stream_model*) calloc(num_models, sizeof(stream_model));
+    
+    // Allocate jagged array, one set of stats per column
+    for (i = 0; i < q_list->columns; ++i) {
+        // And for each column, one set of stats per low/high quantizer per previous context
+        for (j = 0; j < 2*q_list->input_alphabets[i]->size; ++j) {
+            // Finally each individual stat structure needs to be filled in uniformly
+            model_idx = get_qv_model_index(i, j);
+            s[model_idx] = (stream_model) calloc(1, sizeof(struct stream_model_t));
+            s[model_idx]->counts = (uint32_t *) calloc(q_list->q[i][j]->output_alphabet->size, sizeof(uint32_t));
+            
+            // Initialize the quantizer's stats uniformly
+            for (k = 0; k < q_list->q[i][j]->output_alphabet->size; k++) {
+                s[model_idx]->counts[k] = 1;
+            }
+            s[model_idx]->n = q_list->q[i][j]->output_alphabet->size;
+            s[model_idx]->alphabetCard = q_list->q[i][j]->output_alphabet->size;
+            
+            // Step size is 8 counts per symbol seen to speed convergence
+            s[model_idx]->step = 8;
+            
+            //rescale bound
+            s[model_idx]->rescale = rescale;
+            
+        }
+    }
+    
+    return s;
+}
+
+/**
+ *
+ */
 read_models alloc_read_models_t(uint32_t read_length){
     
     uint32_t rescale = 1 << 20;
@@ -391,3 +436,20 @@ read_models alloc_read_models_t(uint32_t read_length){
     
     return rtn;
 }
+
+/**
+ *
+ */
+void alloc_stream_model_qv(qv_block qvBlock){
+    
+    // Generate the Codebooks of the QVs in order to initialize the stream_model
+    
+    uint32_t rescale = 1 << 20;
+    
+    calculate_statistics(qvBlock);
+    generate_codebooks(qvBlock);
+    qvBlock->model = initialize_stream_model_qv(qvBlock->qlist, rescale);
+    
+}
+
+
