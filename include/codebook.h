@@ -16,7 +16,6 @@
 #include "pmf.h"
 #include "distortion.h"
 #include "quantizer.h"
-#include "lines.h"
 
 #define MODE_RATIO		0	// Traditional implementation, output bitrate is scaled from input
 #define MODE_FIXED		1	// Fixed rate per symbol
