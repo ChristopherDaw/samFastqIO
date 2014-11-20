@@ -58,6 +58,10 @@ void stream_write_bits(struct io_stream_t *os, uint32_t dw, uint8_t len);
 void stream_finish_byte(struct io_stream_t *os);
 void stream_write_buffer(struct io_stream_t *os);
 
+void stream_write_bytes(struct io_stream_t *is, char* ch, uint32_t len);
+void stream_read_bytes(struct io_stream_t *is, char* ch, uint32_t len);
+void stream_read_line(struct io_stream_t *is, char* line, uint32_t len);
+
 Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction);
 void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t cumCountX, uint32_t n);
 uint64_t encoder_last_step(Arithmetic_stream a);

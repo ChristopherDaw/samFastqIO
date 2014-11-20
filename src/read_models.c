@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Mikel Hernaez. All rights reserved.
 //
 
-#include "sam_line.h"
+#include "sam_block.h"
 
 
 int char2basepair(char c)
@@ -390,6 +390,7 @@ stream_model *initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, u
         for (j = 0; j < 2*q_list->input_alphabets[i]->size; ++j) {
             // Finally each individual stat structure needs to be filled in uniformly
             model_idx = get_qv_model_index(i, j);
+            //model_idx = ((i & 0xff) << 8 | (j & 0xff));
             s[model_idx] = (stream_model) calloc(1, sizeof(struct stream_model_t));
             s[model_idx]->counts = (uint32_t *) calloc(q_list->q[i][j]->output_alphabet->size, sizeof(uint32_t));
             

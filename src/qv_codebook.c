@@ -1,4 +1,4 @@
-#include "codebook.h"
+#include "qv_codebook.h"
 #include "sam_block.h"
 
 #include <stdio.h>
@@ -485,17 +485,20 @@ void generate_codebooks(struct qv_block_t *info) {
  * Writes all of the codebooks for the set of quantizers given, along with necessary
  * metadata (columns, lines, cluster counts) first
  */
-void write_codebooks(FILE *fp, struct qv_block_t *info) {
+void write_codebooks(Arithmetic_stream as, struct qv_block_t *info) {
 	uint32_t columns, lines;
     
 	// number of columns (4), total number of lines (4), then a newline
 	columns = htonl(info->columns);
 	lines = htonl((uint32_t)info->block_length);
-	fwrite(&columns, sizeof(uint32_t), 1, fp);
-	fwrite(&lines, sizeof(uint32_t), 1, fp);
+    
+    stream_write_bits(as->ios, columns, 32);
+    stream_write_bits(as->ios, lines, 32);
+	//fwrite(&columns, sizeof(uint32_t), 1, fp);
+	//fwrite(&lines, sizeof(uint32_t), 1, fp);
 
 	// Now, write the codebook
-    write_codebook(fp, info->qlist);
+    write_codebook(as, info->qlist);
 }
 
 /**
@@ -509,7 +512,7 @@ void write_codebooks(FILE *fp, struct qv_block_t *info) {
  *  2: 1 byte per quantizer symbol for each low quantizer in order of symbols in previous column
  *  3: 1 byte per quantizer symbol for each high quantizer in order of symbols in previous column
  */
-void write_codebook(FILE *fp, struct cond_quantizer_list_t *quantizers) {
+void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantizers) {
 	uint32_t i, j, k;
 	uint32_t columns = quantizers->columns;
 	struct quantizer_t *q_temp = get_cond_quantizer_indexed(quantizers, 0, 0);
@@ -521,18 +524,25 @@ void write_codebook(FILE *fp, struct cond_quantizer_list_t *quantizers) {
 	// First line, ratio for zero context quantizer
 	linebuf[0] = quantizers->qratio[0][0] + 33;
 	linebuf[1] = eol[0];
-	fwrite(linebuf, sizeof(char), 2, fp);
+    stream_write_bytes(as->ios, linebuf, 2);
+	//fwrite(linebuf, sizeof(char), 2, fp);
 
 	// Second line is low quantizer
 	COPY_Q_TO_LINE(linebuf, q_temp->q, i, size);
-	fwrite(linebuf, sizeof(char), size, fp);
-	fwrite(eol, sizeof(char), 1, fp);
+    stream_write_bytes(as->ios, linebuf, size);
+	//fwrite(linebuf, sizeof(char), size, fp);
+    
+    stream_write_bytes(as->ios, eol, 1);
+	//fwrite(eol, sizeof(char), 1, fp);
 
 	// Third line is high quantizer
 	q_temp = get_cond_quantizer_indexed(quantizers, 0, 1);
 	COPY_Q_TO_LINE(linebuf, q_temp->q, i, size);
-	fwrite(linebuf, sizeof(char), size, fp);
-	fwrite(eol, sizeof(char), 1, fp);
+    stream_write_bytes(as->ios, linebuf, size);
+	//fwrite(linebuf, sizeof(char), size, fp);
+    
+    stream_write_bytes(as->ios, eol, 1);
+	//fwrite(eol, sizeof(char), 1, fp);
 
 	// Now for the rest of the columns, use the same format
 	for (i = 1; i < columns; ++i) {
@@ -540,47 +550,56 @@ void write_codebook(FILE *fp, struct cond_quantizer_list_t *quantizers) {
 		for (j = 0; j < quantizers->input_alphabets[i]->size; ++j) {
 			linebuf[j] = quantizers->qratio[i][j] + 33;
 		}
-		fwrite(linebuf, sizeof(char), quantizers->input_alphabets[i]->size, fp);
-		fwrite(eol, sizeof(char), 1, fp);
+		//fwrite(linebuf, sizeof(char), quantizers->input_alphabets[i]->size, fp);
+        stream_write_bytes(as->ios, linebuf, quantizers->input_alphabets[i]->size);
+        stream_write_bytes(as->ios, eol, 1);
+		//fwrite(eol, sizeof(char), 1, fp);
 
 		// Next, the low quantizers in index order
 		for (j = 0; j < quantizers->input_alphabets[i]->size; ++j) {
 			q_temp = get_cond_quantizer_indexed(quantizers, i, 2*j);
 			COPY_Q_TO_LINE(linebuf, q_temp->q, k, size);
-			fwrite(linebuf, sizeof(char), size, fp);
+            //fwrite(linebuf, sizeof(char), size, fp);
+            stream_write_bytes(as->ios, linebuf, size);
 		}
-		fwrite(eol, sizeof(char), 1, fp);
+        stream_write_bytes(as->ios, eol, 1);
+		//fwrite(eol, sizeof(char), 1, fp);
 
 		// Finally, the high quantizers in index order
 		for (j = 0; j < quantizers->input_alphabets[i]->size; ++j) {
 			q_temp = get_cond_quantizer_indexed(quantizers, i, 2*j+1);
 			COPY_Q_TO_LINE(linebuf, q_temp->q, k, size);
-			fwrite(linebuf, sizeof(char), size, fp);
+			//fwrite(linebuf, sizeof(char), size, fp);
+            stream_write_bytes(as->ios, linebuf, size);
 		}
-		fwrite(eol, sizeof(char), 1, fp);
+        stream_write_bytes(as->ios, eol, 1);
+		//fwrite(eol, sizeof(char), 1, fp);
 	}
 }
 
 /**
  * Reads in all of the codebooks for the clusters from the given file
  */
-void read_codebooks(FILE *fp, struct qv_block_t *info) {
-	char line[9];
-
+void read_codebooks(Arithmetic_stream as, struct qv_block_t *info) {
+	char line[8];
+    
+    // Read the readLength and the blocklength
+    stream_read_bytes(as->ios, line, 8);
+    
 	// Recover columns and block_length as 32 bit integers
-	info->columns = (line[1] & 0xff) | ((line[2] << 8) & 0xff00) | ((line[3] << 16) & 0xff0000) | ((line[4] << 24) & 0xff000000);
+	info->columns = (line[0] & 0xff) | ((line[1] << 8) & 0xff00) | ((line[2] << 16) & 0xff0000) | ((line[3] << 24) & 0xff000000);
 	info->columns = ntohl(info->columns);
-	info->block_length = (line[5] & 0xff) | ((line[6] << 8) & 0xff00) | ((line[7] << 16) & 0xff0000) | ((line[8] << 24) & 0xff000000);
+	info->block_length = (line[4] & 0xff) | ((line[5] << 8) & 0xff00) | ((line[6] << 16) & 0xff0000) | ((line[7] << 24) & 0xff000000);
 	info->block_length = ntohl(info->block_length);
 
 	// Read codebooks in order
-    info->qlist = read_codebook(fp, info);
+    info->qlist = read_codebook(as, info);
 }
 
 /**
  * Reads a single codebook and sets up the quantizer list
  */
-struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
+struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info) {
 	uint32_t column, size;
 	uint32_t i, j;
 	struct quantizer_t *q_lo, *q_hi;
@@ -597,15 +616,18 @@ struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
 	free_alphabet(uniques);
 
 	// Next line is qratio for zero quantizer offset by 33
-	fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
+    stream_read_line(as->ios, line, MAX_CODEBOOK_LINE_LENGTH);
+	//fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
 	qratio = line[0] - 33;
 
 	// Allocate some quantizers and copy the tables from lines 3 and 4
 	q_lo = alloc_quantizer(A);
 	q_hi = alloc_quantizer(A);
-	fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
+    stream_read_line(as->ios, line, MAX_CODEBOOK_LINE_LENGTH);
+	//fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
 	COPY_Q_FROM_LINE(line, q_lo->q, j, A->size);
-	fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
+    stream_read_line(as->ios, line, MAX_CODEBOOK_LINE_LENGTH);
+	//fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
 	COPY_Q_FROM_LINE(line, q_hi->q, j, A->size);
 
 	// Fill in missing uniques information and store
@@ -625,7 +647,8 @@ struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
 		uniques = alloc_alphabet(0);
 		
 		// First line is the ratios
-		fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
+		//fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
+        stream_read_line(as->ios, line, MAX_CODEBOOK_LINE_LENGTH);
 		for (i = 0; i < size; ++i) {
 			qlist->qratio[column][i] = line[i] - 33;
 		}
@@ -633,7 +656,8 @@ struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
 		// Next line is a number of low quantizers
 		for (i = 0; i < size; ++i) {
 			q_lo = alloc_quantizer(A);
-			fread(line, A->size*sizeof(symbol_t), 1, fp);
+			//fread(line, A->size*sizeof(symbol_t), 1, fp);
+            stream_read_bytes(as->ios, line,  A->size*sizeof(symbol_t));
 			COPY_Q_FROM_LINE(line, q_lo->q, j, A->size);
 			
 			find_output_alphabet(q_lo);
@@ -642,12 +666,14 @@ struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
 		}
 
 		// Kill the line with fgets to handle \n or \r\n automatically
-		(void) fgets(line, 2, fp);
+        (void) stream_read_line(as->ios, line, 2);
+		//(void) fgets(line, 2, fp);
 
 		// Next line is a number of high quantizers
 		for (i = 0; i < size; ++i) {
 			q_hi = alloc_quantizer(A);
-			fread(line, A->size*sizeof(symbol_t), 1, fp);
+			//fread(line, A->size*sizeof(symbol_t), 1, fp);
+            stream_read_bytes(as->ios, line,  A->size*sizeof(symbol_t));
 			COPY_Q_FROM_LINE(line, q_hi->q, j, A->size);
 
 			find_output_alphabet(q_hi);
@@ -656,7 +682,8 @@ struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info) {
 		}
 
 		// Kill the line with fgets again
-		(void) fgets(line, 2, fp);
+        (void) stream_read_line(as->ios, line, 2);
+		//(void) fgets(line, 2, fp);
 	}
 
 	// We don't use the uniques from the last column

@@ -10,7 +10,7 @@
 #define XC_s2fastqIO_reads_compression_h
 
 #include "Arithmetic_stream.h"
-#include "sam_line.h"
+#include "sam_block.h"
 
 
 #define MAX_BP_CHR 300000000
@@ -57,6 +57,10 @@ uint32_t compress_indels(Arithmetic_stream a, stream_model *I, uint8_t numIndels
 uint32_t compress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref, enum BASEPAIR target);
 uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32_t prevPos, uint32_t flag);
 
+
+uint32_t compress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx, uint8_t qv);
+double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line);
+
 // Prototypes for the functions to extract the information from the reads
 uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t P, uint8_t flag);
 int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned int insertionPos, char *read);
@@ -73,7 +77,7 @@ uint32_t decompress_indels(Arithmetic_stream a, stream_model *I);
 uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos, uint32_t flag);
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
-uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLine);
+uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine);
 uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char **read, FILE *fastqFile);
 uint32_t decompress_read(Arithmetic_stream as, read_models models, char **read, FILE *fastqFile);
 int store_reference_in_memory(FILE* refFile);

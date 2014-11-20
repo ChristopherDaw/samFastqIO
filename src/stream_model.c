@@ -37,7 +37,7 @@ void send_value_to_as(Arithmetic_stream as, stream_model model, int32_t x){
     uint32_t cumCountX_1 = 0, cumCountX = 0;
     
     // Compute the cumulative counts of x and x-1
-    assert(x <= model->alphabetCard);
+    assert(x < model->alphabetCard);
     
     for (i = 0; i < x; ++i) {
         cumCountX_1 += model->counts[i];

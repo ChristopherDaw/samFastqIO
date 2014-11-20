@@ -18,7 +18,7 @@
 
 #include "stream_model.h"
 #include "pmf.h"
-#include "codebook.h"
+#include "qv_codebook.h"
 #include "util.h"
 #include "well.h"
 #include "quantizer.h"
@@ -37,7 +37,7 @@
 #define LF_ERROR_NO_MEMORY			2
 #define LF_ERROR_TOO_LONG			4
 
-#define get_qv_model_index(a,b) ((a & 0xff) << 6 | (b & 0x3f))
+#define get_qv_model_index(a,b) ((a & 0xff) << 8 | (b & 0xff))
 
 #define MAX_ALPHA 5000000
 #define MAX_CARDINALITY 50000000
@@ -160,9 +160,11 @@ double optimize_for_entropy(struct pmf_t *pmf, struct distortion_t *dist, double
 void generate_codebooks(struct qv_block_t *info);
 
 // Master functions to handle codebooks in the output file
-void write_codebooks(FILE *fp, struct qv_block_t *info);
-void write_codebook(FILE *fp, struct cond_quantizer_list_t *quantizers);
-void read_codebooks(FILE *fp, struct qv_block_t *info);
-struct cond_quantizer_list_t *read_codebook(FILE *fp, struct qv_block_t *info);
+void write_codebooks(Arithmetic_stream as, struct qv_block_t *info);
+void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantizers);
+void read_codebooks(Arithmetic_stream as, struct qv_block_t *info);
+struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info);
+
+
 
 #endif

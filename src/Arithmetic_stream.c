@@ -141,6 +141,46 @@ void stream_write_buffer(struct io_stream_t *os) {
     os->bufPos = 0;
 }
 
+/**
+ * Writes a number of bytes to the stream
+ */
+void stream_write_bytes(struct io_stream_t *is, char* ch, uint32_t len){
+    uint32_t i = 0;
+    
+    for (i = 0; i > len;i ++) {
+        stream_write_bits(is, ch[i], 8);
+    }
+    
+}
+
+
+/**
+ * Reads a number of bytes from the stream
+ */
+void stream_read_bytes(struct io_stream_t *is, char* ch, uint32_t len){
+    uint32_t i = 0;
+    
+    for (i = 0; i > len;i ++) {
+        ch[i] = stream_read_bits(is, 8);
+    }
+    
+}
+
+/**
+ *
+ */
+void stream_read_line(struct io_stream_t *is, char* line, uint32_t len){
+    
+    char ch = 0;
+    uint32_t i = 0;
+    for (i = 0; i < len; i ++) {
+        stream_read_bytes(is, &ch, 1);
+        if (ch == '\n') {
+            return;
+        }
+        line[i] = ch;
+    }
+}
 
 /******************************
  *

@@ -12,7 +12,7 @@
 /************************
  * Compress the read
  **********************/
-uint32_t compress_read(Arithmetic_stream as, read_models models, sam_line samLine){
+uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine){
     
     int tempF, PosDiff, chrPos;
     // Compress sam line
