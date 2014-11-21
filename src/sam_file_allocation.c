@@ -102,24 +102,37 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
 }
 
-sam_block alloc_sam_block_t(FILE * fin, struct qv_options_t *qv_opts){
+sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_t *qv_opts, uint8_t decompression){
     
-    sam_block sf = (sam_block) calloc(1, sizeof(struct sam_block_t));
+    sam_block sb = (sam_block) calloc(1, sizeof(struct sam_block_t));
     
-    sf->fs = fin;
+    sb->fs = fin;
     
-    sf->block_length = MAX_LINES_PER_BLOCK;
+    sb->block_length = MAX_LINES_PER_BLOCK;
     
-    // get the read length and move file pointer after headers
-    sf->read_length = get_read_length(fin);
+    // Get the Read Length
+    if (decompression) {
+        // get the readLength from the ios buffer
+        sb->read_length = stream_read_bits(as->ios, 32);
+    }
+    else{
+        // get the read length from input file and move file pointer after headers
+        sb->read_length = get_read_length(sb->fs);
+        
+        // write readLength directly to ios buffer;
+        stream_write_bits(as->ios, sb->read_length, 32);
+        
+    }
     
     // Allocate the memory for the three parts: READS, QVs, ID
-    sf->reads = alloc_read_block_t(sf->read_length);
-    sf->QVs = alloc_qv_block_t(qv_opts, sf->read_length);
+    sb->reads = alloc_read_block_t(sb->read_length);
+    sb->QVs = alloc_qv_block_t(qv_opts, sb->read_length);
     
     // TODO: IDs
     
-    return sf;
+    
+    
+    return sb;
     
 }
 
@@ -129,8 +142,6 @@ uint32_t load_sam_block(sam_block sb){
     int ch = 0;
     read_line rline = NULL;
     qv_line qvline = NULL;
-    
-    printf("Loading block of data into memory...\n");
     
     for (i = 0; i < sb->block_length; i++) {
         
@@ -173,9 +184,6 @@ uint32_t load_sam_block(sam_block sb){
     sb->block_length = i;
     sb->reads->block_length = i;
     sb->QVs->block_length = i;
-    
-    printf("Computing the codebook for the QVs...\n");
-    alloc_stream_model_qv(sb->QVs);
     
     return i;
 }

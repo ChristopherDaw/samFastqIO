@@ -486,14 +486,14 @@ void generate_codebooks(struct qv_block_t *info) {
  * metadata (columns, lines, cluster counts) first
  */
 void write_codebooks(Arithmetic_stream as, struct qv_block_t *info) {
-	uint32_t columns, lines;
+	//uint32_t columns, lines;
     
 	// number of columns (4), total number of lines (4), then a newline
-	columns = htonl(info->columns);
-	lines = htonl((uint32_t)info->block_length);
+	//columns = htonl(info->columns);
+	//lines = htonl((uint32_t)info->block_length);
     
-    stream_write_bits(as->ios, columns, 32);
-    stream_write_bits(as->ios, lines, 32);
+    stream_write_bits(as->ios, info->columns, 32);
+    stream_write_bits(as->ios, (uint32_t)info->block_length, 32);
 	//fwrite(&columns, sizeof(uint32_t), 1, fp);
 	//fwrite(&lines, sizeof(uint32_t), 1, fp);
 
@@ -586,11 +586,11 @@ void read_codebooks(Arithmetic_stream as, struct qv_block_t *info) {
     // Read the readLength and the blocklength
     stream_read_bytes(as->ios, line, 8);
     
-	// Recover columns and block_length as 32 bit integers
-	info->columns = (line[0] & 0xff) | ((line[1] << 8) & 0xff00) | ((line[2] << 16) & 0xff0000) | ((line[3] << 24) & 0xff000000);
-	info->columns = ntohl(info->columns);
-	info->block_length = (line[4] & 0xff) | ((line[5] << 8) & 0xff00) | ((line[6] << 16) & 0xff0000) | ((line[7] << 24) & 0xff000000);
-	info->block_length = ntohl(info->block_length);
+	// Recover columns and block_length as 32 bit integers (we have read the msb first)
+	info->columns = (line[3] & 0xff) | ((line[2] << 8) & 0xff00) | ((line[1] << 16) & 0xff0000) | ((line[0] << 24) & 0xff000000);
+	//info->columns = ntohl(info->columns);
+	info->block_length = (line[7] & 0xff) | ((line[6] << 8) & 0xff00) | ((line[5] << 16) & 0xff0000) | ((line[4] << 24) & 0xff000000);
+	//info->block_length = ntohl(info->block_length);
 
 	// Read codebooks in order
     info->qlist = read_codebook(as, info);

@@ -147,7 +147,7 @@ void stream_write_buffer(struct io_stream_t *os) {
 void stream_write_bytes(struct io_stream_t *is, char* ch, uint32_t len){
     uint32_t i = 0;
     
-    for (i = 0; i > len;i ++) {
+    for (i = 0; i < len;i ++) {
         stream_write_bits(is, ch[i], 8);
     }
     
@@ -160,7 +160,7 @@ void stream_write_bytes(struct io_stream_t *is, char* ch, uint32_t len){
 void stream_read_bytes(struct io_stream_t *is, char* ch, uint32_t len){
     uint32_t i = 0;
     
-    for (i = 0; i > len;i ++) {
+    for (i = 0; i < len;i ++) {
         ch[i] = stream_read_bits(is, 8);
     }
     
@@ -188,7 +188,7 @@ void stream_read_line(struct io_stream_t *is, char* line, uint32_t len){
  *
  ********************************/
 
-Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction) {
+Arithmetic_stream alloc_arithmetic_stream(FILE * ftemp, uint32_t m, uint8_t direction) {
     
     Arithmetic_stream a;
     
@@ -198,9 +198,6 @@ Arithmetic_stream alloc_arithmetic_stream(uint32_t m, uint8_t direction) {
     a->r = 1 << (m - 3);
     a->l = 0;
     a->u = (1 << m) - 1;
-    
-    
-    FILE *ftemp = (direction == COMPRESSION)? fopen("/tmp/comp_test.ido", "w"):  fopen("/tmp/comp_test.ido", "r");
     
     a->ios = alloc_io_stream(ftemp, direction);
     

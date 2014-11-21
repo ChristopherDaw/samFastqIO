@@ -148,7 +148,7 @@ read_models alloc_read_models_t(uint32_t read_length);
 void alloc_stream_model_qv(qv_block qvBlock);
 
 
-sam_block alloc_sam_block_t(FILE * fs, struct qv_options_t *qv_opts);
+sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_t *qv_opts, uint8_t decompression);
 read_block alloc_read_block_t(uint32_t read_length);
 qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length);
 uint32_t get_read_length(FILE *f);
@@ -164,6 +164,8 @@ void write_codebooks(Arithmetic_stream as, struct qv_block_t *info);
 void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantizers);
 void read_codebooks(Arithmetic_stream as, struct qv_block_t *info);
 struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info);
+
+void compute_qv_codebook(Arithmetic_stream as, qv_block qvBlock, uint8_t compression);
 
 
 

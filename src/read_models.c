@@ -447,9 +447,29 @@ void alloc_stream_model_qv(qv_block qvBlock){
     
     uint32_t rescale = 1 << 20;
     
-    calculate_statistics(qvBlock);
-    generate_codebooks(qvBlock);
     qvBlock->model = initialize_stream_model_qv(qvBlock->qlist, rescale);
+    
+}
+
+void compute_qv_codebook(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression){
+    
+    if (decompression) {
+        // Read the codebook from the input stream
+        read_codebooks(as, qvBlock);
+    }
+    else{
+
+        // Calculate the statistics of the training set
+        // and generate the codebook
+        calculate_statistics(qvBlock);
+        generate_codebooks(qvBlock);
+        
+        // Write the codebook for this block in the output stream
+        write_codebooks(as, qvBlock);
+    }
+    
+    // initialize the modle of the qv using the codebooks
+    alloc_stream_model_qv(qvBlock);
     
 }
 
