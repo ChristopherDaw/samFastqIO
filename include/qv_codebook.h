@@ -17,6 +17,9 @@
 #include "distortion.h"
 #include "quantizer.h"
 
+#include "stream_model.h"
+
+
 #define MODE_RATIO		0	// Traditional implementation, output bitrate is scaled from input
 #define MODE_FIXED		1	// Fixed rate per symbol
 #define MODE_FIXED_MSE	2	// Fixed average MSE per column
@@ -82,6 +85,11 @@ void store_cond_quantizers(struct quantizer_t *restrict lo, struct quantizer_t *
 void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quantizer_t *restrict hi, double ratio, struct cond_quantizer_list_t *list, uint32_t column, uint32_t index);
 struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx);
 uint32_t find_state_encoding(struct quantizer_t *codebook, symbol_t value);
+
+uint32_t compress_int(Arithmetic_stream as, stream_model *PA, uint32_t x);
+uint32_t decompress_int(Arithmetic_stream as, stream_model *PA);
+uint32_t compress_char_array(Arithmetic_stream as, stream_model *model, int *a, uint32_t len);
+uint32_t decompress_char_array(Arithmetic_stream as, stream_model *model, int *a, uint32_t len);
 
 
 

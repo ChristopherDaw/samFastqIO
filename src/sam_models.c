@@ -200,6 +200,7 @@ stream_model* initialize_stream_model_match(uint32_t rescale){
     return s;
     
 }
+
 stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale){
     
     stream_model *s;
@@ -441,36 +442,72 @@ read_models alloc_read_models_t(uint32_t read_length){
 /**
  *
  */
-void alloc_stream_model_qv(qv_block qvBlock){
+stream_model* initialize_stream_model_codebook(uint32_t rescale){
     
-    // Generate the Codebooks of the QVs in order to initialize the stream_model
+    // It is a byte-based model with the previous byte as context.
+    uint32_t i = 0, j = 0;
+    uint32_t context_size = 256;
     
-    uint32_t rescale = 1 << 20;
+    stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
     
-    qvBlock->model = initialize_stream_model_qv(qvBlock->qlist, rescale);
+    for (i = 0; i < context_size; i++) {
+        
+        s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
+        
+        // Allocate memory
+        s[i]->counts = (uint32_t*) calloc(257, sizeof(uint32_t));
+        
+        // An extra for the cumcounts
+        s[i]->counts += 1;
+        
+        s[i]->alphabetCard = 256;
+        
+        s[i]->n = 0;
+        for (j = 0; j < 256; j++) {
+            s[i]->counts[j] = 1;
+            s[i]->n += s[i]->counts[j];
+        }
+        
+        // STEP
+        s[i]->step = 1;
+        
+        //rescale bound
+        s[i]->rescale = rescale;
+    }
+    
+    
+    return s;
     
 }
 
-void compute_qv_codebook(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression){
+
+
+/**
+ *
+ */
+void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression){
     
+    uint32_t rescale = 1 << 20;
+    
+    // We need to generate the Codebooks of the QVs in order to initialize the stream_model
     if (decompression) {
+        
         // Read the codebook from the input stream
         read_codebooks(as, qvBlock);
     }
     else{
 
-        // Calculate the statistics of the training set
-        // and generate the codebook
+        // Calculate the statistics of the training set and generate the codebook
         calculate_statistics(qvBlock);
         generate_codebooks(qvBlock);
         
         // Write the codebook for this block in the output stream
         write_codebooks(as, qvBlock);
+
     }
     
-    // initialize the modle of the qv using the codebooks
-    alloc_stream_model_qv(qvBlock);
-    
+    // initialize the model of the qv using the codebooks
+    qvBlock->model = initialize_stream_model_qv(qvBlock->qlist, rescale);
 }
 
 

@@ -108,29 +108,31 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_
     
     sb->fs = fin;
     
+    // initialize the codebook_model
+    uint32_t rescale = 1 << 20;
+    sb->codebook_model = initialize_stream_model_codebook(rescale);
+    
     sb->block_length = MAX_LINES_PER_BLOCK;
     
     // Get the Read Length
     if (decompression) {
         // get the readLength from the ios buffer
-        sb->read_length = stream_read_bits(as->ios, 32);
+        sb->read_length =  decompress_int(as, sb->codebook_model);
     }
     else{
         // get the read length from input file and move file pointer after headers
         sb->read_length = get_read_length(sb->fs);
-        
-        // write readLength directly to ios buffer;
-        stream_write_bits(as->ios, sb->read_length, 32);
-        
+        // write readLength directly to as using the codebook model
+        compress_int(as, sb->codebook_model, sb->read_length);
     }
     
-    // Allocate the memory for the three parts: READS, QVs, ID
+    // Allocate the memory for the three parts:
+    //READS,
     sb->reads = alloc_read_block_t(sb->read_length);
+    //QVs,
     sb->QVs = alloc_qv_block_t(qv_opts, sb->read_length);
-    
-    // TODO: IDs
-    
-    
+    sb->QVs->codebook_model = sb->codebook_model;
+    //@TODO: IDs
     
     return sb;
     

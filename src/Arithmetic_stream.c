@@ -201,6 +201,11 @@ Arithmetic_stream alloc_arithmetic_stream(FILE * ftemp, uint32_t m, uint8_t dire
     
     a->ios = alloc_io_stream(ftemp, direction);
     
+    if (direction == DECOMPRESSION) {
+        //Read the tag
+        a->t = stream_read_bits(a->ios, ARITHMETIC_WORD_LENGTH);
+    }
+    
     return a;
 }
 

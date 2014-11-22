@@ -112,6 +112,7 @@ typedef struct qv_block_t {
     struct qv_options_t *opts;
     struct well_state_t well;
     stream_model *model;
+    stream_model *codebook_model;
 }*qv_block;
 
 /**
@@ -124,6 +125,7 @@ typedef struct sam_block_t{
     char *path;
     uint32_t read_length;
     uint32_t block_length;
+    stream_model *codebook_model;
 }*sam_block;
 
 
@@ -142,6 +144,7 @@ stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t resca
 stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_chars(uint32_t rescale);
 stream_model* initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, uint32_t rescale);
+stream_model* initialize_stream_model_codebook(uint32_t rescale);
 
 read_models alloc_read_models_t(uint32_t read_length);
 
@@ -161,11 +164,11 @@ void generate_codebooks(struct qv_block_t *info);
 
 // Master functions to handle codebooks in the output file
 void write_codebooks(Arithmetic_stream as, struct qv_block_t *info);
-void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantizers);
+void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantizers, stream_model *model);
 void read_codebooks(Arithmetic_stream as, struct qv_block_t *info);
 struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info);
 
-void compute_qv_codebook(Arithmetic_stream as, qv_block qvBlock, uint8_t compression);
+void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression);
 
 
 
