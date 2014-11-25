@@ -103,7 +103,7 @@ typedef struct qv_line_t {
  */
 typedef struct qv_block_t {
     struct alphabet_t *alphabet;
-    uint64_t block_length;
+    uint32_t block_length;
     uint32_t columns;
     struct qv_line_t *qv_lines;
     struct cond_pmf_list_t *training_stats;
@@ -126,6 +126,7 @@ typedef struct sam_block_t{
     uint32_t read_length;
     uint32_t block_length;
     stream_model *codebook_model;
+    FILE *fref;
 }*sam_block;
 
 
@@ -151,7 +152,7 @@ read_models alloc_read_models_t(uint32_t read_length);
 void alloc_stream_model_qv(qv_block qvBlock);
 
 
-sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_t *qv_opts, uint8_t decompression);
+sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression);
 read_block alloc_read_block_t(uint32_t read_length);
 qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length);
 uint32_t get_read_length(FILE *f);

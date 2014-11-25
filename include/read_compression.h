@@ -60,6 +60,8 @@ uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32
 
 uint32_t compress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx, uint8_t qv);
 double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line);
+double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout);
+uint32_t decompress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx);
 
 // Prototypes for the functions to extract the information from the reads
 uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t P, uint8_t flag);
@@ -78,8 +80,8 @@ uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos,
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine);
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char **read, FILE *fastqFile);
-uint32_t decompress_read(Arithmetic_stream as, read_models models, char **read, FILE *fastqFile);
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fastqFile);
+uint32_t decompress_read(Arithmetic_stream as, sam_block sb);
 int store_reference_in_memory(FILE* refFile);
 
 #endif

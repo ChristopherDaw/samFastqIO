@@ -102,11 +102,13 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
 }
 
-sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_t *qv_opts, uint8_t decompression){
+sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression){
     
     sam_block sb = (sam_block) calloc(1, sizeof(struct sam_block_t));
     
     sb->fs = fin;
+    
+    sb->fref = fref;
     
     // initialize the codebook_model
     uint32_t rescale = 1 << 20;
@@ -122,7 +124,7 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, struct qv_options_
     else{
         // get the read length from input file and move file pointer after headers
         sb->read_length = get_read_length(sb->fs);
-        // write readLength directly to as using the codebook model
+        // write readLength directly to AS using the codebook model
         compress_int(as, sb->codebook_model, sb->read_length);
     }
     
@@ -167,9 +169,9 @@ uint32_t load_sam_block(sam_block sb){
                     ch = fgetc(sb->fs);
                     if (ch == 'D'){
                         // Read :Z:
-                        ch = fgetc(sb->fs);
-                        ch = fgetc(sb->fs);
-                        ch = fgetc(sb->fs);
+                        fgetc(sb->fs);// :
+                        fgetc(sb->fs);// Z
+                        fgetc(sb->fs);// :
                         fscanf(sb->fs, "%s", rline->edits);
                     }
                 }

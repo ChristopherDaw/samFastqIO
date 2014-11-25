@@ -506,6 +506,8 @@ void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompr
 
     }
     
+    //print_codebook(qvBlock->qlist);
+    
     // initialize the model of the qv using the codebooks
     qvBlock->model = initialize_stream_model_qv(qvBlock->qlist, rescale);
 }

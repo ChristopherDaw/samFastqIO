@@ -8,7 +8,8 @@
  * Allocate enough room based on the size of the alphabet supplied
  */
 struct quantizer_t *alloc_quantizer(const struct alphabet_t *alphabet) {
-	struct quantizer_t *rtn = (struct quantizer_t *) calloc(1, sizeof(struct quantizer_t));
+    struct quantizer_t *rtn = NULL;
+	rtn = (struct quantizer_t *) calloc(1, sizeof(struct quantizer_t));
 	rtn->alphabet = alphabet;
 	rtn->q = (symbol_t *) calloc(alphabet->size, sizeof(symbol_t));
 	return rtn;

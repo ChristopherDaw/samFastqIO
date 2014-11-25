@@ -43,7 +43,6 @@ uint32_t compress_int(Arithmetic_stream as, stream_model *PA, uint32_t x){
     send_value_to_as(as, PA[prevByte], Byte);
     // Update model
     update_model(PA[prevByte], Byte);
-    prevByte = Byte;
     
     return 1;
     
@@ -87,7 +86,6 @@ uint32_t decompress_int(Arithmetic_stream as, stream_model *PA){
     Byte = read_value_from_as(as, PA[prevByte]);
     // Update model
     update_model(PA[prevByte], Byte);
-    prevByte = Byte;
     
      x |= Byte;
     
@@ -174,9 +172,10 @@ void free_conditional_pmf_list(struct cond_pmf_list_t *list) {
 	for (i = 0; i < count; ++i) {
 		free_pmf(list->pmfs[0]);
 	}
-	free(list);
 
 	free_pmf_list(list->marginal_pmfs);
+    
+    free(list);
 }
 
 /**
@@ -655,7 +654,7 @@ void write_codebook(Arithmetic_stream as, struct cond_quantizer_list_t *quantize
 	// First line, ratio for zero context quantizer
 	//linebuf[0] = quantizers->qratio[0][0] + 33;
 	//linebuf[1] = eol[0];
-    send_value_to_as(as, model[0], quantizers->qratio[0][0] + 33);
+    send_value_to_as(as, model[0], quantizers->qratio[0][0]);
     //stream_write_bytes(as->ios, linebuf, 2);
 	//fwrite(linebuf, sizeof(char), 2, fp);
 
@@ -754,10 +753,11 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 	free_alphabet(uniques);
 
 	// Next line is qratio for zero quantizer offset by 33
-    decompress_char_array(as, info->codebook_model, line, MAX_CODEBOOK_LINE_LENGTH);
+    //decompress_char_array(as, info->codebook_model, line, MAX_CODEBOOK_LINE_LENGTH);
+    qratio = read_value_from_as(as, info->codebook_model[0]);
     //stream_read_line(as->ios, line, MAX_CODEBOOK_LINE_LENGTH);
 	//fgets(line, MAX_CODEBOOK_LINE_LENGTH, fp);
-	qratio = line[0] - 33;
+	//qratio = line[0] - 33;
 
 	// Allocate some quantizers and copy the tables from lines 3 and 4
 	q_lo = alloc_quantizer(A);
@@ -797,10 +797,11 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 
 		// Next line is a number of low quantizers
 		for (i = 0; i < size; ++i) {
+            q_lo = NULL;
 			q_lo = alloc_quantizer(A);
 			//fread(line, A->size*sizeof(symbol_t), 1, fp);
             //stream_read_bytes(as->ios, line,  A->size*sizeof(symbol_t));
-            decompress_char_array(as, info->codebook_model, line, A->size*sizeof(symbol_t));
+            decompress_char_array(as, info->codebook_model, line, MAX_CODEBOOK_LINE_LENGTH);
 			COPY_Q_FROM_LINE(line, q_lo->q, j, A->size);
 			
 			find_output_alphabet(q_lo);
@@ -809,7 +810,7 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 		}
 
 		// Kill the line with fgets to handle \n or \r\n automatically
-        decompress_char_array(as, info->codebook_model, line, 2);
+        //decompress_char_array(as, info->codebook_model, line, 2);
         //(void) stream_read_line(as->ios, line, 2);
 		//(void) fgets(line, 2, fp);
 
@@ -817,7 +818,7 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 		for (i = 0; i < size; ++i) {
 			q_hi = alloc_quantizer(A);
 			//fread(line, A->size*sizeof(symbol_t), 1, fp);
-            decompress_char_array(as, info->codebook_model, line, A->size*sizeof(symbol_t));
+            decompress_char_array(as, info->codebook_model, line, MAX_CODEBOOK_LINE_LENGTH);
             //stream_read_bytes(as->ios, line,  A->size*sizeof(symbol_t));
 			COPY_Q_FROM_LINE(line, q_hi->q, j, A->size);
 
@@ -827,7 +828,7 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 		}
 
 		// Kill the line with fgets again
-        decompress_char_array(as, info->codebook_model, line, 2);
+        //decompress_char_array(as, info->codebook_model, line, 2);
         //(void) stream_read_line(as->ios, line, 2);
 		//(void) fgets(line, 2, fp);
 	}

@@ -501,7 +501,6 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
         }
         
         if (flag == 1){
-            flag = 0;
             break;
         }
         
