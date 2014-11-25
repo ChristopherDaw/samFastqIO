@@ -170,7 +170,9 @@ void read_codebooks(Arithmetic_stream as, struct qv_block_t *info);
 struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info);
 
 void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression);
+void reset_QV_block(qv_block qvb, uint8_t direction);
 
+stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 
 
 #endif

@@ -170,7 +170,7 @@ void free_conditional_pmf_list(struct cond_pmf_list_t *list) {
 	uint32_t i;
 
 	for (i = 0; i < count; ++i) {
-		free_pmf(list->pmfs[0]);
+		free_pmf(list->pmfs[i]);
 	}
 
 	free_pmf_list(list->marginal_pmfs);
@@ -202,7 +202,7 @@ void free_cond_quantizer_list(struct cond_quantizer_list_t *list) {
 
 	for (i = 0; i < list->columns; ++i) {
 		if (list->q[i]) {
-			for (j = 0; j < list->input_alphabets[i]->size; ++i) {
+			for (j = 0; j < list->input_alphabets[i]->size; ++j) {
 				if (list->q[i][j])
 					free_quantizer(list->q[i][j]);
 			}

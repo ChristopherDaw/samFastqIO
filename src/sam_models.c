@@ -414,6 +414,27 @@ stream_model *initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, u
     return s;
 }
 
+stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s) {
+    
+    uint32_t i = 0, j = 0, model_idx = 0;
+    
+    
+    
+    // Allocate jagged array, one set of stats per column
+    for (i = 0; i < q_list->columns; ++i) {
+        // And for each column, one set of stats per low/high quantizer per previous context
+        for (j = 0; j < 2*q_list->input_alphabets[i]->size; ++j) {
+            // Finally each individual stat structure needs to be filled in uniformly
+            model_idx = get_qv_model_index(i, j);
+            //model_idx = ((i & 0xff) << 8 | (j & 0xff));
+            free_model(s[model_idx]);
+        }
+    }
+    
+    return s;
+}
+
+
 /**
  *
  */
@@ -496,7 +517,10 @@ void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompr
         read_codebooks(as, qvBlock);
     }
     else{
-
+        
+        // Allocate the training set
+        qvBlock->training_stats = alloc_conditional_pmf_list(qvBlock->alphabet, qvBlock->columns);
+        
         // Calculate the statistics of the training set and generate the codebook
         calculate_statistics(qvBlock);
         generate_codebooks(qvBlock);

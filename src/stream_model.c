@@ -8,6 +8,26 @@
 
 #include "stream_model.h"
 
+void free_models_array(stream_model *model_ptr, uint32_t num_models){
+    uint32_t i = 0;
+    for (i = 0; i < num_models; i++) {
+        free_model(model_ptr[i]);
+    }
+}
+void free_model(stream_model model){
+    free(model->counts);
+    if (model->alphabet) {
+        free(model->alphabet);
+    }
+    if (model->alphaExist) {
+        free(model->alphaExist);
+    }
+    if (model->alphaMap) {
+        free(model->alphaMap);
+    }
+    free(model);
+}
+
 uint32_t update_model(stream_model model, int32_t x){
     
     int32_t i = 0;

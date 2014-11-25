@@ -8,6 +8,14 @@
 
 #include "sam_block.h"
 
+void reset_QV_block(qv_block qvb, uint8_t direction){
+    
+    free_stream_model_qv(qvb->qlist, qvb->model);
+    free_cond_quantizer_list(qvb->qlist);
+    if (direction == COMPRESSION)
+        free_conditional_pmf_list(qvb->training_stats);
+    
+}
 
 uint32_t get_read_length(FILE *f){
     
@@ -95,8 +103,6 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     qv_info->dist = dist;
     
     qv_info->opts = opts;
-    
-    qv_info->training_stats = alloc_conditional_pmf_list(qv_info->alphabet, qv_info->columns);
     
     return qv_info;
     
