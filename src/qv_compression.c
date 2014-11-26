@@ -110,7 +110,7 @@ double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t i
         prev_qv = line[s] - 33;
     }
     
-    if (inv) {
+    /*if (inv) {
         for (s = columns - 1; s >= 0; s--) {
             fputc(line[s],fout);
         }
@@ -118,7 +118,8 @@ double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t i
         return 1;
     }
     else fwrite(line, 1, columns +1, fout);
-    
+    */
+    fwrite(line, 1, columns +1, fout);
     return 1;
 }
 

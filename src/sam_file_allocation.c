@@ -148,7 +148,7 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
 
 uint32_t load_sam_block(sam_block sb){
     
-    uint32_t i = 0, j = 0;
+    int32_t i = 0, j = 0;
     int ch = 0;
     read_line rline = NULL;
     qv_line qvline = NULL;
@@ -165,9 +165,18 @@ uint32_t load_sam_block(sam_block sb){
             fgetc(sb->fs); //remove the \t
             
             // Read the QVs and translate them to a 0-based scale
-            for (j = 0; j < sb->read_length; j++) {
-                qvline->data[j] = fgetc(sb->fs) - 33;
+            // Check if the read is inversed
+            if (rline->invFlag & 16) { // The read is inversed
+                for (j = sb->read_length - 1; j >= 0; j--) {
+                    qvline->data[j] = fgetc(sb->fs) - 33;
+                }
             }
+            else{ // The read is not inversed
+                for (j = 0; j < sb->read_length; j++) {
+                    qvline->data[j] = fgetc(sb->fs) - 33;
+                }
+            }
+            
             // Read the AUX fields until end of line, and store the MD field
             while('\n'!=(ch=fgetc(sb->fs))){
                 // Do something
