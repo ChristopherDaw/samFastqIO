@@ -16,6 +16,7 @@
 #define MAX_BP_CHR 300000000
 #define CHR_CHANGE_FLAG 0xffffffff
 #define END_GENOME_FLAG 0xfffffff0
+#define INV_FLAG 0xff000000
 
 //#define MAX_PATH_LENGTH 256
 //#define MAX_HEADER 512
@@ -60,7 +61,7 @@ uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32
 
 uint32_t compress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx, uint8_t qv);
 double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line);
-double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout);
+double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv);
 uint32_t decompress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx);
 
 // Prototypes for the functions to extract the information from the reads
@@ -80,7 +81,7 @@ uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos,
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine);
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fastqFile);
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fs);
 uint32_t decompress_read(Arithmetic_stream as, sam_block sb);
 int store_reference_in_memory(FILE* refFile);
 

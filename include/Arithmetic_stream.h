@@ -9,7 +9,7 @@
 #ifndef XC_s2fastqIO_Arithmetic_stream_h
 #define XC_s2fastqIO_Arithmetic_stream_h
 
-#define IO_STREAM_BUF_LEN 2048
+#define IO_STREAM_BUF_LEN 1024*1024
 
 #include <stdio.h>
 #include <stdlib.h>

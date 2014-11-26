@@ -82,12 +82,13 @@ double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line) {
     return error / ((double) columns);
 }
 
-double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout) {
+double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv) {
     
-    uint32_t s = 0, idx = 0, q_state = 0;
+    uint32_t idx = 0, q_state = 0;
     uint8_t prev_qv = 0;
     uint32_t columns = info->columns;
     
+    int s = 0;
     char *line = (char *) _alloca(columns+1);
     line[columns] = '\n';
     
@@ -109,7 +110,14 @@ double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout) {
         prev_qv = line[s] - 33;
     }
     
-    fwrite(line, 1, columns +1, fout);
+    if (inv) {
+        for (s = columns - 1; s >= 0; s--) {
+            fputc(line[s],fout);
+        }
+        fputc('\n', fout);
+        return 1;
+    }
+    else fwrite(line, 1, columns +1, fout);
     
     return 1;
 }

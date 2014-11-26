@@ -127,6 +127,7 @@ typedef struct sam_block_t{
     uint32_t block_length;
     stream_model *codebook_model;
     FILE *fref;
+    uint32_t current_line; // used for decompression
 }*sam_block;
 
 

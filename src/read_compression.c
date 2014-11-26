@@ -17,8 +17,8 @@ uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLi
     int tempF, PosDiff, chrPos;
     // Compress sam line
     PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
-    //tempF = compress_flag(as, models->flag, samLine->invFlag);
-    tempF = compress_flag(as, models->flag, 0);
+    tempF = compress_flag(as, models->flag, samLine->invFlag);
+    //tempF = compress_flag(as, models->flag, 0);
     chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF);
     
     assert(samLine->pos  == chrPos);

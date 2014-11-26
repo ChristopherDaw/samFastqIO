@@ -61,7 +61,7 @@ read_block alloc_read_block_t(uint32_t read_length){
         
         rf->lines[i].cigar = (char*) calloc(1, 2*read_length);
         rf->lines[i].edits = (char*) calloc(1, 2*read_length);
-        rf->lines[i].read = (char*) calloc(1, read_length + 1);
+        rf->lines[i].read = (char*) calloc(1, read_length + 3);
     }
     
     // Allocate (and initialize) the models for the reads
