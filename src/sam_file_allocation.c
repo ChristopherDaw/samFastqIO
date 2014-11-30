@@ -25,7 +25,7 @@ uint32_t get_read_length(FILE *f){
     // We use this opportunity to remove the headers
     while ((ch = getc(f)) == '@') {
         fgets(buffer, 1024, f);
-        header_bytes += strlen(buffer);
+        header_bytes += strlen(buffer) + 1; // +1 to account for the @
     }
     
     // rewind the file pointer to be at the beginning of the first read
