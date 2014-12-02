@@ -12,9 +12,6 @@
 #include "Arithmetic_stream.h"
 #include "read_compression.h"
 
-// Interface for libssh
-#include <libssh/libssh.h>
-
 int compress_block(Arithmetic_stream as, sam_block samBlock){
     
     unsigned int i = 0;
@@ -94,11 +91,11 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
 
 
 
-int compress(FILE *fin, FILE *fout, struct qv_options_t *qv_opts){
+int compress(FILE *fin, struct remote_file_info info, struct qv_options_t *qv_opts){
     
     uint64_t compress_file_size = 0, n = 0;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(fout,ARITHMETIC_WORD_LENGTH, COMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(info,ARITHMETIC_WORD_LENGTH, COMPRESSION);
     
     sam_block samBlock = alloc_sam_block_t(as, fin, NULL, qv_opts, COMPRESSION);
     
@@ -121,13 +118,13 @@ int compress(FILE *fin, FILE *fout, struct qv_options_t *qv_opts){
 }
 
 
-int decompress(FILE *fin, FILE *fout, FILE *fref, struct qv_options_t *qv_opts){
+int decompress(FILE *fout, struct remote_file_info info, FILE *fref, struct qv_options_t *qv_opts){
     
     uint64_t n = 0;
     uint32_t i = 0;
     uint8_t reference_flag = 0;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(fin,ARITHMETIC_WORD_LENGTH, DECOMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(info,ARITHMETIC_WORD_LENGTH, DECOMPRESSION);
     
     sam_block samBlock = alloc_sam_block_t(as, fout, fref, qv_opts, DECOMPRESSION);
     
@@ -158,7 +155,7 @@ int decompress(FILE *fin, FILE *fout, FILE *fref, struct qv_options_t *qv_opts){
     
     // free(samLine->cigar), free(samLine.edits), free(samLine.read_), free(samLine.identifier), free(samLine.refname);
     
-    fclose(fin);
+    //fclose(fin);
     
     return 0;
 }
@@ -191,7 +188,13 @@ int main(int argc, const char * argv[]) {
     
     struct qv_options_t opts;
     
-    const char *input_name = NULL, *output_name = NULL, *ref_name = NULL;
+    char input_name[1024], output_name[1024], ref_name[1024];
+    
+    char* ptr;
+    
+    FILE *fref = NULL;
+    
+    struct remote_file_info remote_info;
     
     clock_t begin = clock();
     
@@ -212,15 +215,15 @@ int main(int argc, const char * argv[]) {
         if (argv[i][0] != '-') {
             switch (file_idx) {
                 case 0:
-                    input_name = argv[i];
+                    strcpy(input_name,argv[i]);
                     file_idx = 1;
                     break;
                 case 1:
-                    output_name = argv[i];
+                    strcpy(output_name,argv[i]);
                     file_idx = 2;
                     break;
                 case 2:
-                    ref_name = argv[i];
+                    strcpy(ref_name, argv[i]);
                     file_idx = 3;
                     break;
                 default:
@@ -315,12 +318,29 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    FILE * fcomp = (extract == COMPRESSION)? fopen(output_name, "w"):  fopen(input_name, "r");
+    if (extract == COMPRESSION) {
+        ptr = strtok((char*)output_name, "@");
+        strcpy(remote_info.username, ptr);
+        ptr = strtok(NULL, ":");
+        strcpy(remote_info.host_name, ptr);
+        ptr = strtok(NULL, "\0");
+        strcpy(remote_info.filename, ptr);
+    }
+    
+    if (extract == DECOMPRESSION) {
+        ptr = strtok((char*)input_name, "@");
+        strcpy(remote_info.username, ptr);
+        ptr = strtok(NULL, ":");
+        strcpy(remote_info.host_name, ptr);
+        ptr = strtok(NULL, "\0");
+        strcpy(remote_info.filename, ptr);
+    }
+    
+    //FILE * fcomp = (extract == COMPRESSION)? fopen(output_name, "w"):  fopen(input_name, "r");
     
     FILE * fsam = (extract == COMPRESSION)? fopen( input_name, "r"): fopen(output_name, "w");
     
     // Open the Ref file
-    FILE *fref = NULL;
     if (extract == DECOMPRESSION) {
         if (( fref = fopen ( ref_name , "r" ) ) == NULL){
             fputs ("Chromosome (ref) File error\n",stderr); exit (1);
@@ -329,11 +349,13 @@ int main(int argc, const char * argv[]) {
     
     
     if (extract == COMPRESSION)
-        compress(fsam, fcomp, &opts);
+        compress(fsam, remote_info, &opts);
     else
-        decompress(fcomp, fsam, fref, &opts);
+        decompress(fsam, remote_info, fref, &opts);
     
-    fclose(fcomp), fclose(fsam);
+    fclose(fsam);
+    
+    
     
     if (extract == DECOMPRESSION) fclose(fref);
     

@@ -16,6 +16,13 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include <sys/stat.h>
+#include <fcntl.h>
+
+// Interface for libssh
+#include <libssh/libssh.h>
+#include <libssh/sftp.h>
+
 #include "stream_model.h"
 #include "pmf.h"
 #include "qv_codebook.h"
