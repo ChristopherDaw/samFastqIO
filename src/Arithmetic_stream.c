@@ -16,40 +16,69 @@
  *
  ************************************/
 
+int clean_compressed_dir(struct io_stream_t* ios){
+    
+    uint32_t rc=0;
+    ios->fileCtr = 0;
+    
+    do{
+        sprintf(ios->filePath, IDOFILE_PATH_ROOT "%010d", ios->fileCtr);
+        rc = remove(ios->filePath);
+        ios->fileCtr++;
+    }while (rc == 0);
+    
+    ios->fileCtr = 0;
+    
+    return rc;
+    
+}
+
+void open_new_iofile(struct io_stream_t* ios){
+    
+    fclose(ios->fp);
+    
+    sprintf(ios->filePath, IDOFILE_PATH_ROOT "%010d", ios->fileCtr);
+    ios->fileCtr++;
+        
+    if (ios->direcction == DECOMPRESSION) {
+        ios->fp = fopen(ios->filePath, "r");
+        fread(ios->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, ios->fp);
+    }
+    else ios->fp = fopen(ios->filePath, "w");
+}
 
 /**
  * Allocates a file stream wrapper for the arithmetic encoder, with a given
  * already opened file handle
  */
-struct io_stream_t *alloc_io_stream(struct remote_file_info info, uint8_t in) {
-    
-    int64_t nread = 0;
+struct io_stream_t *alloc_io_stream(uint8_t in) {
     
     struct io_stream_t *rtn = (struct io_stream_t *) calloc(1, sizeof(struct io_stream_t));
     
+    rtn->direcction = in;
+    
     rtn->buf = (uint8_t *) calloc(IO_STREAM_BUF_LEN, sizeof(uint8_t));
     
-    //rtn->fp = fp;
-    
-    rtn->session = open_ssh_session(info.host_name, info.username);
-    
-    
-    
     if (in == DECOMPRESSION) {
-    //    fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, fp);
-        rtn->f_sftp = init_remote_read(rtn->session, info.filename, &(rtn->sftp));
         
-        nread = read_from_remote_file(rtn->f_sftp, (char*)rtn->buf, IO_STREAM_BUF_LEN);
-        if (nread != IO_STREAM_BUF_LEN)
-        {
-            fprintf(stderr, "Can't read data from file: %s\n",
-                    ssh_get_error(rtn->session));
-            sftp_close(rtn->f_sftp);
-        }
-
+        rtn->fileCtr = 0;
+        sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
+        rtn->fileCtr++;
+        
+        rtn->fp = fopen(rtn->filePath, "r");
+        fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, rtn->fp);
+    }
+    else{
+        
+        clean_compressed_dir(rtn);
+        
+        rtn->fileCtr = 0;
+        sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
+        rtn->fileCtr++;
+        
+        rtn->fp = fopen(rtn->filePath, "w");
     }
     
-    else rtn->f_sftp = init_remote_write(rtn->session, info.filename, &(rtn->sftp));
     
     rtn->bufPos = 0;
     rtn->bitPos = 0;
@@ -71,7 +100,6 @@ void free_os_stream(struct io_stream_t *os) {
  */
 uint8_t stream_read_bit(struct io_stream_t *is) {
     
-    int64_t nread = 0;
     uint8_t rtn = is->buf[is->bufPos] >> 7;
     
     is->buf[is->bufPos] = is->buf[is->bufPos] << 1;
@@ -81,14 +109,8 @@ uint8_t stream_read_bit(struct io_stream_t *is) {
         is->bitPos = 0;
         is->bufPos += 1;
         if (is->bufPos == IO_STREAM_BUF_LEN) {
+            open_new_iofile(is);
             //fread(is->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, is->fp);
-            nread = read_from_remote_file(is->f_sftp, (char*)is->buf, IO_STREAM_BUF_LEN);
-            if (nread != IO_STREAM_BUF_LEN)
-            {
-                fprintf(stderr, "Can't read data to file: %s\n",
-                        ssh_get_error(is->session));
-                sftp_close(is->f_sftp);
-            }
             is->bufPos = 0;
         }
     }
@@ -161,15 +183,9 @@ void stream_finish_byte(struct io_stream_t *os) {
  * Writes out the current stream buffer regardless of fill amount
  */
 void stream_write_buffer(struct io_stream_t *os) {
-    //fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
-    int64_t nwritten = 0;
-    nwritten = write_to_remote_file(os->f_sftp, (char*)os->buf, os->bufPos);
-    if (nwritten != os->bufPos)
-    {
-        fprintf(stderr, "Can't write data to file: %s\n",
-                ssh_get_error(os->session));
-        sftp_close(os->f_sftp);
-    }
+    
+    fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
+    open_new_iofile(os);
     memset(os->buf, 0, sizeof(uint8_t)*os->bufPos);
     os->written += os->bufPos;
     os->bufPos = 0;
@@ -222,9 +238,11 @@ void stream_read_line(struct io_stream_t *is, char* line, uint32_t len){
  *
  ********************************/
 
-Arithmetic_stream alloc_arithmetic_stream(struct remote_file_info info, uint32_t m, uint8_t direction) {
+Arithmetic_stream alloc_arithmetic_stream(uint8_t direction) {
     
     Arithmetic_stream a;
+    
+    uint32_t m = ARITHMETIC_WORD_LENGTH;
     
     a = (Arithmetic_stream) calloc(1, sizeof(struct Arithmetic_stream_t));
     
@@ -233,7 +251,7 @@ Arithmetic_stream alloc_arithmetic_stream(struct remote_file_info info, uint32_t
     a->l = 0;
     a->u = (1 << m) - 1;
     
-    a->ios = alloc_io_stream(info, direction);
+    a->ios = alloc_io_stream(direction);
     
     if (direction == DECOMPRESSION) {
         //Read the tag
@@ -325,7 +343,6 @@ void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t
 
 uint64_t encoder_last_step(Arithmetic_stream a) {
     
-    int rc = 0;
     uint8_t msbL = a->l >> (a->m - 1);
     
     // Write the msb of the tag (l)
@@ -341,16 +358,7 @@ uint64_t encoder_last_step(Arithmetic_stream a) {
     stream_write_bits(a->ios, a->l, a->m - 1);
     stream_finish_byte(a->ios);
     
-    rc = sftp_close(a->ios->f_sftp);
-    if (rc != SSH_OK)
-    {
-        fprintf(stderr, "Can't close the written file: %s\n",
-                ssh_get_error(a->ios->session));
-        return rc;
-    }
-    
-    ssh_disconnect(a->ios->session);
-    ssh_free(a->ios->session);
+    fclose(a->ios->fp);
     
     return a->ios->written;
 }

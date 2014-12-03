@@ -95,7 +95,7 @@ int compress(FILE *fin, struct remote_file_info info, struct qv_options_t *qv_op
     
     uint64_t compress_file_size = 0, n = 0;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(info,ARITHMETIC_WORD_LENGTH, COMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(COMPRESSION);
     
     sam_block samBlock = alloc_sam_block_t(as, fin, NULL, qv_opts, COMPRESSION);
     
@@ -124,7 +124,7 @@ int decompress(FILE *fout, struct remote_file_info info, FILE *fref, struct qv_o
     uint32_t i = 0;
     uint8_t reference_flag = 0;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(info,ARITHMETIC_WORD_LENGTH, DECOMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(DECOMPRESSION);
     
     sam_block samBlock = alloc_sam_block_t(as, fout, fref, qv_opts, DECOMPRESSION);
     
@@ -189,8 +189,6 @@ int main(int argc, const char * argv[]) {
     struct qv_options_t opts;
     
     char input_name[1024], output_name[1024], ref_name[1024];
-    
-    char* ptr;
     
     FILE *fref = NULL;
     
@@ -318,7 +316,7 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    if (extract == COMPRESSION) {
+    /*if (extract == COMPRESSION) {
         ptr = strtok((char*)output_name, "@");
         strcpy(remote_info.username, ptr);
         ptr = strtok(NULL, ":");
@@ -334,9 +332,9 @@ int main(int argc, const char * argv[]) {
         strcpy(remote_info.host_name, ptr);
         ptr = strtok(NULL, "\0");
         strcpy(remote_info.filename, ptr);
-    }
-    
+    }*/
     //FILE * fcomp = (extract == COMPRESSION)? fopen(output_name, "w"):  fopen(input_name, "r");
+    
     
     FILE * fsam = (extract == COMPRESSION)? fopen( input_name, "r"): fopen(output_name, "w");
     
