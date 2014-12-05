@@ -35,8 +35,6 @@ int clean_compressed_dir(struct io_stream_t* ios){
 
 void open_new_iofile(struct io_stream_t* ios){
     
-    fclose(ios->fp);
-    
     sprintf(ios->filePath, IDOFILE_PATH_ROOT "%010d", ios->fileCtr);
     ios->fileCtr++;
         
@@ -73,10 +71,6 @@ struct io_stream_t *alloc_io_stream(uint8_t in) {
         clean_compressed_dir(rtn);
         
         rtn->fileCtr = 0;
-        sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
-        rtn->fileCtr++;
-        
-        rtn->fp = fopen(rtn->filePath, "w");
     }
     
     
@@ -109,6 +103,7 @@ uint8_t stream_read_bit(struct io_stream_t *is) {
         is->bitPos = 0;
         is->bufPos += 1;
         if (is->bufPos == IO_STREAM_BUF_LEN) {
+            fclose(is->fp);
             open_new_iofile(is);
             //fread(is->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, is->fp);
             is->bufPos = 0;
@@ -184,8 +179,10 @@ void stream_finish_byte(struct io_stream_t *os) {
  */
 void stream_write_buffer(struct io_stream_t *os) {
     
-    fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
     open_new_iofile(os);
+    fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
+    fclose(os->fp);
+    file_available++;
     memset(os->buf, 0, sizeof(uint8_t)*os->bufPos);
     os->written += os->bufPos;
     os->bufPos = 0;
@@ -358,7 +355,10 @@ uint64_t encoder_last_step(Arithmetic_stream a) {
     stream_write_bits(a->ios, a->l, a->m - 1);
     stream_finish_byte(a->ios);
     
+    // Create a dummy 0B file
+    open_new_iofile(a->ios);
     fclose(a->ios->fp);
+    file_available++;
     
     return a->ios->written;
 }

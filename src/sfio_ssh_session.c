@@ -9,106 +9,12 @@
 #include <stdio.h>
 
 #include <errno.h>
+#include <libssh/sftp.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <pthread.h>
 
 #include "sam_block.h"
-int64_t read_from_remote_file(sftp_file file, char* buffer, uint32_t buff_len){
-    
-    //return sftp_write(file, "jojojoja\n", strlen("lala\n"));
-    
-    return sftp_read(file, buffer, buff_len);
-    
-}
-
-int64_t write_to_remote_file(sftp_file file, char* buffer, uint32_t buff_len){
-    
-    //return sftp_write(file, "jojojoja\n", strlen("lala\n"));
-    
-    return sftp_write(file, buffer, buff_len);
-
-}
-
-sftp_file init_remote_read(ssh_session session, char* filename, sftp_session *sftp_ses){
-    
-    sftp_session sftp;
-    sftp_file file;
-    
-    int access_type = O_RDONLY;
-    
-    
-    int rc;
-    
-    sftp = sftp_new(session);
-    if (sftp == NULL)
-    {
-        fprintf(stderr, "Error allocating SFTP session: %s\n",
-                ssh_get_error(session));
-        return NULL;
-    }
-    rc = sftp_init(sftp);
-    if (rc != SSH_OK)
-    {
-        fprintf(stderr, "Error initializing SFTP session: %d.\n",
-                sftp_get_error(sftp));
-        sftp_free(sftp);
-        return NULL;
-    }
-    
-    file = sftp_open(sftp, filename,
-                     access_type, 0);
-    if (file == NULL)
-    {
-        fprintf(stderr, "Can't open file for reading: %s\n",
-                ssh_get_error(session));
-        return NULL;
-    }
-    
-    sftp_ses = &sftp;
-    
-    return file;
-}
-
-
-sftp_file init_remote_write(ssh_session session, char* filename, sftp_session *sftp_ses){
-    
-    sftp_session sftp;
-    sftp_file file;
-    
-    int access_type = O_WRONLY | O_CREAT | O_TRUNC;
-    
-    
-    int rc;
-    
-    sftp = sftp_new(session);
-    if (sftp == NULL)
-    {
-        fprintf(stderr, "Error allocating SFTP session: %s\n",
-                ssh_get_error(session));
-        return NULL;
-    }
-    rc = sftp_init(sftp);
-    if (rc != SSH_OK)
-    {
-        fprintf(stderr, "Error initializing SFTP session: %d.\n",
-                sftp_get_error(sftp));
-        sftp_free(sftp);
-        return NULL;
-    }
-    
-    file = sftp_open(sftp, filename,
-                     access_type, S_IRWXU);
-    if (file == NULL)
-    {
-        fprintf(stderr, "Can't open file for writing: %s\n",
-                ssh_get_error(session));
-        return NULL;
-    }
-    
-    sftp_ses = &sftp;
-    
-    return file;
-}
-
-
 
 int verify_knownhost(ssh_session session)
 {
@@ -175,11 +81,202 @@ int verify_knownhost(ssh_session session)
 
 
 
+int scp_read(ssh_session session)
+{
+    ssh_scp scp;
+    int rc;
+    scp = ssh_scp_new
+    (session, SSH_SCP_READ | SSH_SCP_RECURSIVE, "./idoFiles/");
+    if (scp == NULL)
+    {
+        fprintf(stderr, "Error allocating scp session: %s\n",
+                ssh_get_error(session));
+        return SSH_ERROR;
+    }
+    rc = ssh_scp_init(scp);
+    if (rc != SSH_OK)
+    {
+        fprintf(stderr, "Error initializing scp session: %s\n",
+                ssh_get_error(session));
+        ssh_scp_free(scp);
+        return rc;
+    }
+    
+    uint64_t length = 0;
+    char filepath[1024] = "/tmp/idoFiles/";
+    char *pathEnd, *filename, *buffer;
+    FILE *fp;
+    uint32_t bufCtr = 0;
+    pathEnd = filepath + strlen(filepath);
+    
+    rc = ssh_scp_pull_request(scp);
+    if (rc != SSH_SCP_REQUEST_NEWDIR)
+    {
+        fprintf(stderr, "Error receiving information about Directory: %s\n",
+                ssh_get_error(session));
+        return SSH_ERROR;
+    }
+    
+    rc = ssh_scp_accept_request(scp);
+    
+    do{
+        
+        rc = ssh_scp_pull_request(scp);
+        if (rc != SSH_SCP_REQUEST_NEWFILE)
+        {
+            fprintf(stderr, "Error receiving information about file: %s\n",
+                    ssh_get_error(session));
+            continue;
+        }
+        length = ssh_scp_request_get_size(scp);
+        filename = strdup(ssh_scp_request_get_filename(scp));
+        int mode = ssh_scp_request_get_permissions(scp);
+        printf("Receiving file %s, size %llu, permisssions 0%o\n",
+               filename, length, mode);
+        
+        buffer = malloc(length);
+        if (buffer == NULL)
+        {
+            fprintf(stderr, "Memory allocation error\n");
+            return SSH_ERROR;
+        }
+        
+        // Accept the scp request
+        rc = ssh_scp_accept_request(scp);
+        
+        // Read the file in chuncks
+        do {
+            rc = ssh_scp_read(scp, buffer+bufCtr, length);
+            bufCtr += rc;
+            if (rc == SSH_ERROR)
+            {
+                fprintf(stderr, "Error receiving file data: %s\n", ssh_get_error(session));
+                free(buffer);
+                free(filename);
+                return rc;
+            }
+            
+        }while (bufCtr < length);
+        
+        printf("Done: Num of Bytes read %d, file length %llu\n", bufCtr, length);
+        
+        strcat(filepath, filename);
+        if ((fp = fopen(filepath, "w")) == NULL) {
+            continue;
+        }
+        
+        fwrite(filepath, sizeof(char), bufCtr, fp);
+        
+        free(buffer);
+        free(filename);
+        fclose(fp);
+        bufCtr = 0;
+        
+    }while(length != 0);
+    
+    // Verify that there are no more files to read
+    rc = ssh_scp_pull_request(scp);
+    if (rc != SSH_SCP_REQUEST_EOF)
+    {
+        fprintf(stderr, "Unexpected request: %s\n",
+                ssh_get_error(session));
+        return SSH_ERROR;
+    }
+    
+    rc = ssh_scp_close(scp);
+    ssh_scp_free(scp);
+    return SSH_OK;
+}
+
+
+
+int scp_write(ssh_session session)
+{
+    ssh_scp scp;
+    int rc;
+    scp = ssh_scp_new
+    (session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, ".");
+    if (scp == NULL)
+    {
+        fprintf(stderr, "Error allocating scp session: %s\n",
+                ssh_get_error(session));
+        return SSH_ERROR;
+    }
+    rc = ssh_scp_init(scp);
+    if (rc != SSH_OK)
+    {
+        fprintf(stderr, "Error initializing scp session: %s\n",
+                ssh_get_error(session));
+        ssh_scp_free(scp);
+        return rc;
+    }
+    
+    uint64_t length = 0;
+    char filename[1024];
+    char filepath[1024];
+    char *pathEnd, *nameEnd;
+    char buffer[1024*1024+1];
+    FILE *fp;
+    
+    uint32_t ctr = 0;
+    
+    strcpy(filepath, "/tmp/idoFiles/idoFile.");
+    pathEnd = filepath + strlen("/tmp/idoFiles/idoFile.");
+    
+    strcpy(filename, "idoFiles/idoFile.");
+    nameEnd = filename + strlen("idoFiles/idoFile.");
+    
+    do{
+        while (file_available == 0) {
+            ;
+        }
+        sprintf(pathEnd, "%010d", ctr);
+        sprintf(nameEnd, "%010d", ctr++);
+        
+        if ((fp = fopen(filepath, "r")) == NULL) {
+            length = 1;
+            printf(" ERROR: File not available");
+        }
+        
+        fseek(fp, 0L, SEEK_END);
+        length = ftell(fp);
+        fseek(fp, 0L, SEEK_SET);
+        
+        fread(buffer, sizeof(char), length, fp);
+        
+        rc = ssh_scp_push_file(scp, filename, length, S_IRUSR |  S_IWUSR);
+        if (rc != SSH_OK)
+        {
+            fprintf(stderr, "Can't open remote file: %s\n",
+                    ssh_get_error(session));
+            return rc;
+        }
+        rc = ssh_scp_write(scp, buffer, length);
+        
+        if (rc != SSH_OK)
+        {
+            fprintf(stderr, "Can't write to remote file: %s\n",
+                    ssh_get_error(session));
+            return rc;
+        }
+        file_available--;
+        
+    }while(length != 0);
+    
+    rc = ssh_scp_close(scp);
+    ssh_scp_free(scp);
+    return SSH_OK;
+}
+
+
 ssh_session open_ssh_session(char* host_name, char *username){
     
     ssh_session my_ssh_session;
     int rc;
     char *password;
+    int verbosity = SSH_LOG_NOLOG;
+    //int verbosity = SSH_LOG_PROTOCOL;
+
     
     // Open session and set options
     my_ssh_session = ssh_new();
@@ -188,6 +285,7 @@ ssh_session open_ssh_session(char* host_name, char *username){
     
     ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, host_name);
     ssh_options_set(my_ssh_session, SSH_OPTIONS_USER, username);
+    ssh_options_set(my_ssh_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
     
     // Connect to server
     rc = ssh_connect(my_ssh_session);
@@ -220,7 +318,43 @@ ssh_session open_ssh_session(char* host_name, char *username){
         ssh_free(my_ssh_session);
         exit(-1);
     }
-    
+
     return my_ssh_session;
     
+}
+
+void* upload(void* remote_info){
+    
+    struct remote_file_info *info = (struct remote_file_info *) remote_info;
+    ssh_session my_ssh_session;
+    
+    char hostname[1024];
+    char username[1024];
+    
+    strcpy(hostname, info->host_name);
+    strcpy(username, info->username);
+    
+    my_ssh_session = open_ssh_session(hostname, username);
+    
+    scp_write(my_ssh_session);
+    
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
+    
+    return NULL;
+}
+
+void* download(void* remote_info){
+    
+    struct remote_file_info *info = (struct remote_file_info *) remote_info;
+    ssh_session my_ssh_session;
+    
+    my_ssh_session = open_ssh_session(info->host_name, info->username);
+    
+    scp_read(my_ssh_session);
+    
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
+    
+    return NULL;
 }

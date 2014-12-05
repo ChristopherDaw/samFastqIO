@@ -50,6 +50,13 @@
 #define MAX_CARDINALITY 50000000
 
 
+struct compressor_info_t{
+    FILE *fsam;
+    FILE *fref;
+    struct qv_options_t *qv_opts;
+};
+
+
 
 typedef struct read_models_t{
     stream_model *flag;
@@ -181,6 +188,11 @@ void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompr
 void reset_QV_block(qv_block qvb, uint8_t direction);
 
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
+
+int compress_block(Arithmetic_stream as, sam_block samBlock);
+int decompress_block(Arithmetic_stream as, sam_block samBlock);
+void* compress(void *thread_info);
+void* decompress(void *thread_info);
 
 
 #endif

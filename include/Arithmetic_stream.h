@@ -34,6 +34,8 @@
 #define IDOFILE_PATH_ROOT "/tmp/idoFiles/idoFile."
 #endif
 
+int file_available;
+
 struct remote_file_info{
     char host_name[1024];
     char username[1024];
@@ -98,5 +100,8 @@ int64_t write_to_remote_file(sftp_file file, char* buffer, uint32_t buff_len);
 sftp_file init_remote_write(ssh_session session, char* filename, sftp_session *sftp_ses);
 sftp_file init_remote_read(ssh_session session, char* filename, sftp_session *sftp_ses);
 int64_t read_from_remote_file(sftp_file file, char* buffer, uint32_t buff_len);
+
+void* download(void* remote_info);
+void* upload(void* remote_info);
 
 #endif
