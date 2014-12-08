@@ -17,15 +17,15 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     unsigned int i = 0;
     
     // Load the data from the first block
-    printf("Loading block of data into memory...\n");
+    //printf("Loading block of data into memory...\n");
     load_sam_block(samBlock);
     
     // Compute the codebook and initialize the QV model
-    printf("Computing the codebook for the QVs...\n");
+    //printf("Computing the codebook for the QVs...\n");
     initialize_qv_model(as, samBlock->QVs, COMPRESSION);
     
     
-    printf("Compressing the block...\n");
+    //printf("Compressing the block...\n");
     // Loop over the lines of the sam block
     for (i = 0; i < samBlock->block_length; i++) {
         
@@ -94,16 +94,19 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
 void* compress(void *thread_info){
     
     uint64_t compress_file_size = 0, n = 0;
-    clock_t begin = clock();
-    clock_t ticks;
+    time_t begin;
+    time_t end;
     
-    printf("Compressing...\n");
+    //printf("Compressing...\n");
+    time(&begin);
     
-    struct compressor_info_t *info = (struct compressor_info_t *)thread_info;
+    struct compressor_info_t info = *((struct compressor_info_t *)thread_info);
+    
+    struct qv_options_t opts = *(info.qv_opts);
     
     Arithmetic_stream as = alloc_arithmetic_stream(COMPRESSION);
     
-    sam_block samBlock = alloc_sam_block_t(as, info->fsam, NULL, info->qv_opts, COMPRESSION);
+    sam_block samBlock = alloc_sam_block_t(as, info.fsam, NULL, &opts, COMPRESSION);
     
     // Compress the blocks
     while(compress_block(as, samBlock)){
@@ -116,13 +119,15 @@ void* compress(void *thread_info){
     //end the compression
     compress_file_size = encoder_last_step(as);
     
-    ticks = clock() - begin;
-    
-    printf("%f Million reads compressed in %f seconds using %f MB.\n", (double)n/1000000.0, ((float)ticks)/CLOCKS_PER_SEC, (double)compress_file_size/1000000.0);
+    //printf("%f Million reads compressed using %f MB.\n", (double)n/1000000.0, (double)compress_file_size/1000000.0);
     
     // free(samLine->cigar), free(samLine.edits), free(samLine.read_), free(samLine.identifier), free(samLine.refname);
     
-    fclose(info->fsam);
+    fclose(info.fsam);
+    
+    time(&end);
+    
+    printf("Compression time elapsed: %ld seconds\n", end-begin);
     
     pthread_exit(NULL);
 }
@@ -167,7 +172,7 @@ void* decompress(void *thread_info){
     
     ticks = clock() - begin;
     
-    printf("Decompression took %f\n", ((float)ticks)/CLOCKS_PER_SEC);
+    //printf("Decompression took %f\n", ((float)ticks)/CLOCKS_PER_SEC);
     
     //printf("%f Million reads decompressed.\n", (double)n/1000000.0);
     
@@ -176,5 +181,5 @@ void* decompress(void *thread_info){
     fclose(info->fsam);
     fclose(info->fref);
     
-    pthread_exit(NULL);
+    return NULL;
 }

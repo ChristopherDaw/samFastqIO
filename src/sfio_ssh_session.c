@@ -81,12 +81,12 @@ int verify_knownhost(ssh_session session)
 
 
 
-int scp_read(ssh_session session)
+int scp_read(ssh_session session, char* directory)
 {
     ssh_scp scp;
     int rc;
     scp = ssh_scp_new
-    (session, SSH_SCP_READ | SSH_SCP_RECURSIVE, "./idoFiles/");
+    (session, SSH_SCP_READ | SSH_SCP_RECURSIVE, directory);
     if (scp == NULL)
     {
         fprintf(stderr, "Error allocating scp session: %s\n",
@@ -162,27 +162,31 @@ int scp_read(ssh_session session)
         
         strcat(filepath, filename);
         if ((fp = fopen(filepath, "w")) == NULL) {
-            continue;
+            return SSH_ERROR;
         }
         
-        fwrite(filepath, sizeof(char), bufCtr, fp);
+        fwrite(buffer, sizeof(char), bufCtr, fp);
         
         free(buffer);
         free(filename);
         fclose(fp);
         bufCtr = 0;
+        *pathEnd = 0;
+        
+        file_available++;
         
     }while(length != 0);
     
     // Verify that there are no more files to read
-    rc = ssh_scp_pull_request(scp);
+    /*rc = ssh_scp_pull_request(scp);
     if (rc != SSH_SCP_REQUEST_EOF)
     {
         fprintf(stderr, "Unexpected request: %s\n",
                 ssh_get_error(session));
         return SSH_ERROR;
     }
-    
+    */
+    // No more files to read
     rc = ssh_scp_close(scp);
     ssh_scp_free(scp);
     return SSH_OK;
@@ -190,12 +194,12 @@ int scp_read(ssh_session session)
 
 
 
-int scp_write(ssh_session session)
+int scp_write(ssh_session session, char* directory)
 {
     ssh_scp scp;
     int rc;
     scp = ssh_scp_new
-    (session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, ".");
+    (session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, directory);
     if (scp == NULL)
     {
         fprintf(stderr, "Error allocating scp session: %s\n",
@@ -215,7 +219,7 @@ int scp_write(ssh_session session)
     char filename[1024];
     char filepath[1024];
     char *pathEnd, *nameEnd;
-    char buffer[1024*1024+1];
+    char buffer[IO_STREAM_BUF_LEN];
     FILE *fp;
     
     uint32_t ctr = 0;
@@ -223,13 +227,13 @@ int scp_write(ssh_session session)
     strcpy(filepath, "/tmp/idoFiles/idoFile.");
     pathEnd = filepath + strlen("/tmp/idoFiles/idoFile.");
     
-    strcpy(filename, "idoFiles/idoFile.");
-    nameEnd = filename + strlen("idoFiles/idoFile.");
+    strcpy(filename, "idoFile.");
+    nameEnd = filename + strlen("idoFile.");
     
+    printf("Uploading files to %s\n", directory);
     do{
-        while (file_available == 0) {
-            ;
-        }
+        while (file_available == 0);
+        //printf("%d\n", file_available);
         sprintf(pathEnd, "%010d", ctr);
         sprintf(nameEnd, "%010d", ctr++);
         
@@ -259,6 +263,7 @@ int scp_write(ssh_session session)
                     ssh_get_error(session));
             return rc;
         }
+        printf("File %s uploaded\n", filename);
         file_available--;
         
     }while(length != 0);
@@ -330,13 +335,16 @@ void* upload(void* remote_info){
     
     char hostname[1024];
     char username[1024];
+    char directory[1024];
     
     strcpy(hostname, info->host_name);
     strcpy(username, info->username);
+    strcpy(directory, info->filename);
     
     my_ssh_session = open_ssh_session(hostname, username);
     
-    scp_write(my_ssh_session);
+    printf("ssh session opened with %s@%s\n", username, hostname);
+    scp_write(my_ssh_session, directory);
     
     ssh_disconnect(my_ssh_session);
     ssh_free(my_ssh_session);
@@ -348,13 +356,21 @@ void* download(void* remote_info){
     
     struct remote_file_info *info = (struct remote_file_info *) remote_info;
     ssh_session my_ssh_session;
+    time_t begin;
+    time_t end;
     
+    time(&begin);
     my_ssh_session = open_ssh_session(info->host_name, info->username);
     
-    scp_read(my_ssh_session);
+    printf("ssh session opened with %s@%s\n", info->host_name, info->username);
+    scp_read(my_ssh_session, info->filename);
     
     ssh_disconnect(my_ssh_session);
     ssh_free(my_ssh_session);
+    
+    time(&end);
+    
+    printf("Downloading time elapsed: %ld seconds\n", end-begin);
     
     return NULL;
 }

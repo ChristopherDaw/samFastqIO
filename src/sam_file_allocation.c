@@ -20,11 +20,11 @@ void reset_QV_block(qv_block qvb, uint8_t direction){
 uint32_t get_read_length(FILE *f){
     
     int ch, header_bytes = 0;
-    char buffer[1024]; // 1 KB buffer
+    char buffer[2048]; // 2 KB buffer
     
     // We use this opportunity to remove the headers
     while ((ch = getc(f)) == '@') {
-        fgets(buffer, 1024, f);
+        fgets(buffer, 2048, f);
         header_bytes += strlen(buffer) + 1; // +1 to account for the @
     }
     
@@ -149,9 +149,11 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
 uint32_t load_sam_block(sam_block sb){
     
     int32_t i = 0, j = 0;
-    int ch = 0;
     read_line rline = NULL;
     qv_line qvline = NULL;
+    
+    char buffer[1024];
+    char *ptr;
     
     for (i = 0; i < sb->block_length; i++) {
         
@@ -161,8 +163,62 @@ uint32_t load_sam_block(sam_block sb){
         rline->read_length = sb->read_length;
         qvline->columns = sb->read_length;
         // Read compulsory fields
+        if (fgets(buffer, 1024, sb->fs)) {
+            // ID
+            ptr = strtok(buffer, "\t");
+            // FLAG
+            ptr = strtok(NULL, "\t");
+            rline->invFlag = atoi(ptr);
+            // RNAME
+            ptr = strtok(NULL, "\t");
+            // POS
+            ptr = strtok(NULL, "\t");
+            rline->pos = atoi(ptr);
+            // MAPQ
+            ptr = strtok(NULL, "\t");
+            // CIGAR
+            ptr = strtok(NULL, "\t");
+            strcpy(rline->cigar, ptr);
+            // RNEXT
+            ptr = strtok(NULL, "\t");
+            // PNEXT
+            ptr = strtok(NULL, "\t");
+            // TLEN
+            ptr = strtok(NULL, "\t");
+            // SEQ
+            ptr = strtok(NULL, "\t");
+            strcpy(rline->read, ptr);
+            // QUAL
+            ptr = strtok(NULL, "\t");
+            // Read the QVs and translate them to a 0-based scale
+            // Check if the read is inversed
+            if (rline->invFlag & 16) { // The read is inverted
+                for (j = sb->read_length - 1; j >= 0; j--) {
+                    qvline->data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+            else{ // The read is not inversed
+                for (j = 0; j < sb->read_length; j++) {
+                    qvline->data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+            // Read the AUX fields until end of line, and store the MD field
+            while( NULL != (ptr = strtok(NULL, "\t")) ){
+                // Do something
+                if (*ptr == 'M' && *(ptr+1) == 'D'){
+                    // skip MD:Z:
+                    ptr += 5;
+                    strcpy(rline->edits, ptr);
+                    break;
+                }
+                
+            }
+        }
+        else
+            break;
+       /* int ch = 0;
         if (EOF!=fscanf(sb->fs, "%*s %"SCNu16" %*s %d %*d %s %*s %*d %*d %s", &(rline->invFlag), &(rline->pos), rline->cigar, rline->read)){
-            fgetc(sb->fs); //remove the \t
+          fgetc(sb->fs); //remove the \t
             
             // Read the QVs and translate them to a 0-based scale
             // Check if the read is inversed
@@ -176,7 +232,8 @@ uint32_t load_sam_block(sam_block sb){
                     qvline->data[j] = fgetc(sb->fs) - 33;
                 }
             }
-            
+         
+        
             // Read the AUX fields until end of line, and store the MD field
             while('\n'!=(ch=fgetc(sb->fs))){
                 // Do something
@@ -196,6 +253,7 @@ uint32_t load_sam_block(sam_block sb){
         }
         else
             break;
+    */
         
     }
 

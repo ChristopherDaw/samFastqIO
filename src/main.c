@@ -51,7 +51,10 @@ int main(int argc, const char * argv[]) {
     struct compressor_info_t comp_info;
     
     pthread_t compressor_thread;
-    pthread_t network_thread;
+    //pthread_t network_thread;
+    
+    time_t begin_main;
+    time_t end_main;
     
     file_available = 0;
     
@@ -205,8 +208,11 @@ int main(int argc, const char * argv[]) {
     }
     
     comp_info.qv_opts = &opts;
-
     
+    
+    file_available = 0;
+    
+    time(&begin_main);
     
     if (extract == COMPRESSION){
         rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
@@ -215,8 +221,9 @@ int main(int argc, const char * argv[]) {
         upload((void *)&remote_info);
     }
     else{
-        rc = pthread_create(&compressor_thread, NULL, decompress , (void *)&comp_info);
-        rc = pthread_create(&network_thread, NULL, download , (void *)&remote_info);
+        //rc = pthread_create(&compressor_thread, NULL, decompress , (void *)&comp_info);
+        rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
+        decompress((void *)&comp_info);
     }
     
     if (rc){
@@ -224,14 +231,18 @@ int main(int argc, const char * argv[]) {
         exit(-1);
     }
     
+    time(&end_main);
+    
     
 #ifdef _WIN32
     system("pause");
 #endif
     
+    printf("Total time elapsed: %ld seconds.\n",(end_main - begin_main));
+    
     pthread_exit(NULL);
     
-    return 0;
+    return 1;
     
     
     

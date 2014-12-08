@@ -15,6 +15,11 @@
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine){
     
     int tempF, PosDiff, chrPos;
+    // For now lets skip the unmapping ones
+    if (samLine->invFlag & 4) {
+        assert(strcmp("*", samLine->cigar) == 0);
+        return 1;
+    }
     // Compress sam line
     PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
     tempF = compress_flag(as, models->flag, samLine->invFlag);
@@ -317,6 +322,10 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     }
     
     compress_match(as, rs->match, 0, deltaP);
+    
+    if (strcmp("0A0T0A0A0A96", edits)==0) {
+        ;
+    }
     
     // The read does not match perfectly
     // Compute the edits
