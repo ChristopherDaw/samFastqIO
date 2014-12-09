@@ -463,6 +463,27 @@ read_models alloc_read_models_t(uint32_t read_length){
 /**
  *
  */
+id_models alloc_id_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    id_models rtn = calloc(1, sizeof(struct id_models_t));
+    
+    rtn->alpha_len;
+    rtn->alpha_value;
+    rtn->chars;
+    rtn->integer;
+    rtn->zero_run;
+    rtn->token_type;
+    
+    
+    return rtn;
+}
+
+
+/**
+ *
+ */
 stream_model* initialize_stream_model_codebook(uint32_t rescale){
     
     // It is a byte-based model with the previous byte as context.

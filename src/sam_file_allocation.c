@@ -42,6 +42,29 @@ uint32_t get_read_length(FILE *f){
     
 }
 
+/**
+ *
+ */
+id_block alloc_id_block(){
+    
+    uint32_t i = 0;
+    
+    id_block rtn = (id_block) calloc(1, sizeof(struct id_block_t));
+    
+    rtn->block_length = MAX_LINES_PER_BLOCK;
+    
+    rtn->IDs = (char**) calloc(rtn->block_length, sizeof(char*));
+    
+    // allocate the memory for each of the lines
+    for (i = 0; i < rtn->block_length; i++) {
+        
+        rtn->IDs[i] = (char*) calloc(MAX_READ_LENGTH, sizeof(char));
+    }
+    
+    // Allocate (and initialize) the models for the IDs
+    
+    return rtn;
+}
 
 /**
  *
@@ -172,7 +195,8 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     // Must start at zero
     sb->QVs->well.n = 0;
     
-    //@TODO: IDs
+    //IDs
+    sb->IDs = alloc_id_block();
     
     return sb;
     
@@ -186,11 +210,13 @@ uint32_t load_sam_block(sam_block sb){
     
     char buffer[1024];
     char *ptr;
+    char *ID_line;
     
     for (i = 0; i < sb->block_length; i++) {
         
         rline = &(sb->reads->lines[i]);
         qvline = &(sb->QVs->qv_lines[i]);
+        ID_line = sb->IDs->IDs[i];
         
         rline->read_length = sb->read_length;
         qvline->columns = sb->read_length;
@@ -198,6 +224,7 @@ uint32_t load_sam_block(sam_block sb){
         if (fgets(buffer, 1024, sb->fs)) {
             // ID
             ptr = strtok(buffer, "\t");
+            strcpy(ID_line, ptr);
             // FLAG
             ptr = strtok(NULL, "\t");
             rline->invFlag = atoi(ptr);

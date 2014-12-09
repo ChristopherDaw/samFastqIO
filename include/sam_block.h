@@ -71,6 +71,15 @@ typedef struct read_models_t{
     char _readLength[4];
 }*read_models;
 
+typedef struct id_models_t{
+    stream_model *token_type;
+    stream_model *integer;
+    stream_model *alpha_len;
+    stream_model *alpha_value;
+    stream_model *chars;
+    stream_model *zero_run;
+}*id_models;
+
 // To store the model of the chars both in ref and target
 enum BASEPAIR {
     A,
@@ -102,6 +111,14 @@ typedef struct read_block_t{
     uint32_t block_length;
 } *read_block;
 
+/**
+ *
+ */
+typedef struct id_block_t{
+    char **IDs;
+    id_models models;
+    uint32_t block_length;
+} *id_block;
 
 /**
  *
@@ -135,6 +152,7 @@ typedef struct qv_block_t {
 typedef struct sam_block_t{
     qv_block QVs;
     read_block reads;
+    id_block IDs;
     FILE *fs;
     char *path;
     uint32_t read_length;
