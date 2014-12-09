@@ -104,11 +104,15 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_info->opts = opts;
     
+    
+    
     return qv_info;
     
 }
 
 sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression){
+    
+    uint32_t i = 0;
     
     sam_block sb = (sam_block) calloc(1, sizeof(struct sam_block_t));
     
@@ -134,12 +138,40 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
         compress_int(as, sb->codebook_model, sb->read_length);
     }
     
+    
     // Allocate the memory for the three parts:
+    
     //READS,
     sb->reads = alloc_read_block_t(sb->read_length);
+    
     //QVs,
     sb->QVs = alloc_qv_block_t(qv_opts, sb->read_length);
     sb->QVs->codebook_model = sb->codebook_model;
+    //WELL random generator
+    memset(&(sb->QVs->well), 0, sizeof(struct well_state_t));
+    if (decompression) {
+        for (i = 0; i < 32; ++i) {
+            sb->QVs->well.state[i] = decompress_int(as, sb->codebook_model);
+        }
+    }
+    else{
+        // Initialize WELL state vector with libc rand
+        srand((uint32_t) time(0));
+        for (i = 0; i < 32; ++i) {
+#ifndef DEBUG
+            sb->QVs->well.state[i] = rand();
+            // Write the initial WELL state vector to the file first (fixed size of 32 bytes)
+            compress_int(as, sb->codebook_model, sb->QVs->well.state[i]);
+#else
+            sb->QVs->well.state[i] = 0x55555555;
+            // Write the initial WELL state vector to the file first (fixed size of 32 bytes)
+            compress_int(as, sb->codebook_model, sb->QVs->well.state[i]);
+#endif
+        }
+    }
+    // Must start at zero
+    sb->QVs->well.n = 0;
+    
     //@TODO: IDs
     
     return sb;
