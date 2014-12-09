@@ -54,6 +54,47 @@ char bp_complement(char c){
 //                                                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////
 
+
+stream_model* initialize_stream_model_id(uint32_t rescale, uint32_t context_size, uint32_t alphabet_card){
+    
+    uint32_t i = 0, j = 0;
+    
+    stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
+    
+    for (i = 0; i < context_size; i++) {
+        
+        s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
+        
+        // Allocate memory
+        s[i]->counts = (uint32_t*) calloc(alphabet_card + 1, sizeof(uint32_t));
+        
+        // An extra for the cumcounts
+        s[i]->counts += 1;
+        
+        s[i]->alphabetCard = alphabet_card;
+        
+        s[i]->n = 0;
+        for (j = 0; j < alphabet_card; j++) {
+            s[i]->counts[j] = 1;
+            s[i]->n += s[0]->counts[j];
+        }
+        
+        // STEP
+        s[i]->step = 10;
+        
+        //rescale bound
+        s[i]->rescale = rescale;
+    }
+    
+    
+    
+    
+    
+    return s;
+    
+}
+
+
 stream_model *initialize_stream_model_flag(uint32_t rescale){
     
     uint32_t i = 0;
@@ -469,13 +510,14 @@ id_models alloc_id_models_t(){
     
     id_models rtn = calloc(1, sizeof(struct id_models_t));
     
-    rtn->alpha_len;
-    rtn->alpha_value;
-    rtn->chars;
-    rtn->integer;
-    rtn->zero_run;
-    rtn->token_type;
+    rtn->alpha_len = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->alpha_value = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->chars = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->integer = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->zero_run = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->token_type = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
     
+    rtn->match  = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 2);
     
     return rtn;
 }

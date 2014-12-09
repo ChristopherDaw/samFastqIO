@@ -32,6 +32,7 @@
 
 
 #define MAX_READ_LENGTH 1024
+#define MAX_NUMBER_TOKENS_ID 128
 
 // This limits us to chunks that aren't too big to fit into a modest amount of memory at a time
 #define MAX_LINES_PER_BLOCK			1000000
@@ -78,6 +79,7 @@ typedef struct id_models_t{
     stream_model *alpha_value;
     stream_model *chars;
     stream_model *zero_run;
+    stream_model *match;
 }*id_models;
 
 // To store the model of the chars both in ref and target
@@ -204,6 +206,8 @@ struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_bloc
 
 void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression);
 void reset_QV_block(qv_block qvb, uint8_t direction);
+
+id_models alloc_id_models_t();
 
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 

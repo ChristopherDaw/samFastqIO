@@ -62,6 +62,7 @@ id_block alloc_id_block(){
     }
     
     // Allocate (and initialize) the models for the IDs
+    rtn->models = alloc_id_models_t();
     
     return rtn;
 }
