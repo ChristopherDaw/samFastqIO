@@ -513,11 +513,9 @@ id_models alloc_id_models_t(){
     rtn->alpha_len = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
     rtn->alpha_value = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
     rtn->chars = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
-    rtn->integer = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
+    rtn->integer = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID * 4, 256);
     rtn->zero_run = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
-    rtn->token_type = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
-    
-    rtn->match  = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 2);
+    rtn->token_type = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 10);
     
     return rtn;
 }

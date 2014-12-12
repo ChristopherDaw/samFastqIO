@@ -30,8 +30,9 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     for (i = 0; i < samBlock->block_length; i++) {
         
         // Compress sam line
-        compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]));
-        QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+        //compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]));
+        //QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+        compress_id(as, samBlock->IDs->models, samBlock->IDs->IDs[i]);
         
     }
     
@@ -59,7 +60,7 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
     // Loop over the lines of the sam block
     for (i = 0; i < samBlock->block_length; i++) {
         
-        decompression_flag = decompress_read(as,samBlock);
+//        decompression_flag = decompress_read(as,samBlock);
         
         if (decompression_flag == CHR_CHANGE_FLAG){
             
@@ -81,7 +82,8 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
         if (decompression_flag == END_GENOME_FLAG)
             return 0;
         
-        QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
+//        QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
+        
         
         
     }
