@@ -96,11 +96,11 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
             }
             
         }
-        // Check if the token is a number smaller than
+        // Check if the token is a number smaller than (1<<30)
         else if (isdigit(*id_ptr)) {
             
-            digit_value = digit_value * 10 + (*id_ptr - '0');
-            while ( isdigit(*id_ptr_tok) ){
+            digit_value = (*id_ptr - '0');
+            while ( isdigit(*id_ptr_tok) && digit_value < (1<<30) ){
                 digit_value = digit_value * 10 + (*id_ptr_tok - '0');
                 // compare with the same token from previous ID
                 match_len += (*id_ptr_tok == prev_ID[prev_tokens_ptr[token_ctr] + token_len]), token_len++, id_ptr_tok++;
@@ -113,7 +113,8 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
                 
             }
             else {
-                // Encode a token type ID_DIGIT, the value
+                // Encode a token type ID_DIGIT and the value (byte-based)
+                compress_uint8t(as, models->token_type[token_ctr], ID_DIGIT);
                 digit_model = (token_ctr << 2);
                 compress_uint8t(as, models->integer[digit_model | 0], (digit_value >> 0) & 0xff);
                 compress_uint8t(as, models->integer[digit_model | 1], (digit_value >> 8) & 0xff);
@@ -133,7 +134,8 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
                 
             }
             else {
-                // Encode a token type ID_CHAR
+                // Encode a token type ID_CHAR and the char
+                compress_uint8t(as, models->token_type[token_ctr], ID_CHAR);
                 compress_uint8t(as, models->chars[token_ctr], *id_ptr);
             }
 
@@ -177,16 +179,17 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
             case ID_ALPHA:
                 token_len = decompress_uint8t(as, model->alpha_len[token_ctr]);
                 for (k = 0; k < token_len; k++) {
-                    id[i] = decompress_uint8t(as, model->alpha_value[token_ctr]);
+                    id[i+k] = decompress_uint8t(as, model->alpha_value[token_ctr]);
                 }
                 break;
             case ID_DIGIT:
                 digit_value = 0;
-                digit_value |= ( decompress_uint8t(as, model->integer[(token_ctr << 2) | 0]) & 0xff ) << 0;
-                digit_value |= ( decompress_uint8t(as, model->integer[(token_ctr << 2) | 1]) & 0xff ) << 4;
-                digit_value |= ( decompress_uint8t(as, model->integer[(token_ctr << 2) | 2]) & 0xff ) << 8;
-                digit_value |= ( decompress_uint8t(as, model->integer[(token_ctr << 2) | 3]) & 0xff ) << 24;
-                sprintf(id+i, "%ud", digit_value);
+                digit_value |= (( decompress_uint8t(as, model->integer[(token_ctr << 2) | 0]) & 0xff ) << 0);
+                digit_value |= (( decompress_uint8t(as, model->integer[(token_ctr << 2) | 1]) & 0xff ) << 8);
+                digit_value |= (( decompress_uint8t(as, model->integer[(token_ctr << 2) | 2]) & 0xff ) << 16);
+                digit_value |= (( decompress_uint8t(as, model->integer[(token_ctr << 2) | 3]) & 0xff ) << 24);
+                sprintf(id+i, "%u", digit_value);
+                token_len = compute_num_digits(digit_value);
                 break;
             case ID_ZEROS:
                 token_len = decompress_uint8t(as, model->zero_run[token_len]);

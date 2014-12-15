@@ -22,7 +22,7 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     
     // Compute the codebook and initialize the QV model
     //printf("Computing the codebook for the QVs...\n");
-    initialize_qv_model(as, samBlock->QVs, COMPRESSION);
+//    initialize_qv_model(as, samBlock->QVs, COMPRESSION);
     
     
     //printf("Compressing the block...\n");
@@ -30,8 +30,8 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     for (i = 0; i < samBlock->block_length; i++) {
         
         // Compress sam line
-        //compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]));
-        //QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+//        compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]));
+//        QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
         compress_id(as, samBlock->IDs->models, samBlock->IDs->IDs[i]);
         
     }
@@ -54,7 +54,7 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
     
     // initialize the QV model
     printf("Computing the codebook for the QVs...\n");
-    initialize_qv_model(as, samBlock->QVs, DECOMPRESSION);
+//    initialize_qv_model(as, samBlock->QVs, DECOMPRESSION);
     
     printf("Decompressing the block...\n");
     // Loop over the lines of the sam block
@@ -84,7 +84,7 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
         
 //        QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
         
-        
+        decompress_id(as, samBlock->IDs->models, samBlock->fs);
         
     }
     
@@ -112,7 +112,7 @@ void* compress(void *thread_info){
     
     // Compress the blocks
     while(compress_block(as, samBlock)){
-        reset_QV_block(samBlock->QVs, COMPRESSION);
+//        reset_QV_block(samBlock->QVs, COMPRESSION);
         n += samBlock->block_length;
     }
     
@@ -163,7 +163,7 @@ void* decompress(void *thread_info){
     
     // Decompress the blocks
     while(decompress_block(as, samBlock)){
-        reset_QV_block(samBlock->QVs, DECOMPRESSION);
+//        reset_QV_block(samBlock->QVs, DECOMPRESSION);
         n += samBlock->block_length;
     }
     

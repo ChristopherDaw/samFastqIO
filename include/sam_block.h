@@ -211,6 +211,7 @@ id_models alloc_id_models_t();
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 
 int compress_id(Arithmetic_stream as, id_models models, char *id);
+int decompress_id(Arithmetic_stream as, id_models model, FILE *fs);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);
