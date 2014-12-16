@@ -57,7 +57,7 @@ struct compressor_info_t{
     struct qv_options_t *qv_opts;
 };
 
-enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_END};
+enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_DELTA, ID_END};
 
 typedef struct read_models_t{
     stream_model *flag;
@@ -75,6 +75,7 @@ typedef struct read_models_t{
 typedef struct id_models_t{
     stream_model *token_type;
     stream_model *integer;
+    stream_model *delta;
     stream_model *alpha_len;
     stream_model *alpha_value;
     stream_model *chars;

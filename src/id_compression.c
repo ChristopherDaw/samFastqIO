@@ -41,7 +41,8 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
     static char prev_ID[1024] = {0};
     static uint32_t prev_tokens_ptr[1024] = {0};
     uint8_t token_len = 0, match_len = 0;
-    uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0, digit_model = 0;
+    uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0, digit_model = 0, prev_digit = 0;
+    int delta = 0;
     
     char *id_ptr = id, *id_ptr_tok = NULL;
     
@@ -100,8 +101,11 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
         else if (isdigit(*id_ptr)) {
             
             digit_value = (*id_ptr - '0');
+            prev_digit = prev_ID[prev_tokens_ptr[token_ctr] + token_len -1] - '0';
+            
             while ( isdigit(*id_ptr_tok) && digit_value < (1<<30) ){
                 digit_value = digit_value * 10 + (*id_ptr_tok - '0');
+                prev_digit = prev_digit * 10 + (prev_ID[prev_tokens_ptr[token_ctr] + token_len] - '0');
                 // compare with the same token from previous ID
                 match_len += (*id_ptr_tok == prev_ID[prev_tokens_ptr[token_ctr] + token_len]), token_len++, id_ptr_tok++;
                 
@@ -110,6 +114,11 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
                 // The token is the same as last ID
                 // Encode a token_type ID_MATCH
                 compress_uint8t(as, models->token_type[token_ctr], ID_MATCH);
+                
+            }
+            else if ( (delta = (digit_value - prev_digit)) < 256 && delta > 0){
+                compress_uint8t(as, models->token_type[token_ctr], ID_DELTA);
+                compress_uint8t(as, models->delta[token_ctr], delta);
                 
             }
             else {
@@ -125,7 +134,7 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
         else {
             
             // compare with the same token from previous ID
-            match_len += (*id_ptr == prev_ID[prev_tokens_ptr[token_ctr]]);
+            //match_len += (*id_ptr == prev_ID[prev_tokens_ptr[token_ctr]]);
             
             if (match_len == token_len) {
                 // The token is the same as last ID
@@ -164,8 +173,9 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
     static uint32_t prev_tokens_ptr[1024] = {0};
     static uint32_t prev_tokens_len[1024] = {0};
     char id[1024] = {0};
-    uint8_t token_len = 0, match_len = 0;
-    uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0, digit_model = 0;
+    uint8_t token_len = 0;
+    uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0;
+    uint32_t delta = 0;
     
     enum token_type tok;
     
@@ -191,14 +201,22 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
                 sprintf(id+i, "%u", digit_value);
                 token_len = compute_num_digits(digit_value);
                 break;
+            case ID_DELTA:
+                digit_value = 0;
+                delta = decompress_uint8t(as, model->delta[token_ctr]);
+                memcpy(id+i, &(prev_ID[prev_tokens_ptr[token_ctr]]), prev_tokens_len[token_ctr]);
+                digit_value = atoi(id+i) + delta;
+                sprintf(id+i, "%u", digit_value);
+                token_len = compute_num_digits(digit_value);
+                break;
             case ID_ZEROS:
-                token_len = decompress_uint8t(as, model->zero_run[token_len]);
+                token_len = decompress_uint8t(as, model->zero_run[token_ctr]);
                 memset(id+i, '0', token_len), i += token_len;
                 break;
             case ID_CHAR:
-                id[i] = decompress_uint8t(as, model->chars[token_len]);
+                id[i] = decompress_uint8t(as, model->chars[token_ctr]);
                 token_len = 1;
-                
+                break;
             default:
                 break;
         }
@@ -211,6 +229,9 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
     }
     
     strcpy(prev_ID, id);
+    id[i++] = '\n';
+    
+    fwrite(id, i, sizeof(char), fs);
     
     return 1;
 }
