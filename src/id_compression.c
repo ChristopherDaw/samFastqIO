@@ -36,6 +36,33 @@ int compress_uint8t(Arithmetic_stream as, stream_model model, uint8_t c){
     
 }
 
+int compress_rname(Arithmetic_stream as, rname_models models, char *rname){
+    
+    static char prev_name[1024] = {0};
+    static int prevChar = 0;
+    
+    uint32_t ctr = 0;
+    
+    if(strcmp(rname, prev_name) == 0){
+        
+        compress_uint8t(as, models->same_ref[0], 1);
+        return 0;
+        
+    }
+    
+    else{
+        compress_uint8t(as, models->same_ref[0], 0);
+        while (*rname) {
+            compress_uint8t(as, models->rname[prevChar], *rname);
+            prev_name[ctr++] = *rname;
+            prevChar = *rname++;
+        }
+        prev_name[ctr] = 0;
+        return 1;
+    }
+    
+}
+
 int compress_id(Arithmetic_stream as, id_models models, char *id){
     
     static char prev_ID[1024] = {0};
@@ -230,7 +257,7 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
     
     strcpy(prev_ID, id);
     id[i++] = '\n';
-    
+    putc('@', fs);
     fwrite(id, i, sizeof(char), fs);
     
     return 1;

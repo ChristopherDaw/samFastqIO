@@ -218,11 +218,11 @@ int main(int argc, const char * argv[]) {
         rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
         //file_available = 31;
         //rc = pthread_create(&network_thread, NULL, upload , (void *)&remote_info);
-        upload((void *)&remote_info);
+//        upload((void *)&remote_info);
     }
     else{
         //rc = pthread_create(&compressor_thread, NULL, decompress , (void *)&comp_info);
-        rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
+//        rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
         decompress((void *)&comp_info);
     }
     

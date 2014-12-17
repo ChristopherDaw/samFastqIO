@@ -57,6 +57,11 @@ struct compressor_info_t{
     struct qv_options_t *qv_opts;
 };
 
+typedef struct rname_models_t{
+    stream_model *rname;
+    stream_model *same_ref;
+}*rname_models;
+
 enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_DELTA, ID_END};
 
 typedef struct read_models_t{
@@ -116,6 +121,15 @@ typedef struct read_block_t{
 /**
  *
  */
+typedef struct rname_block_t{
+    char **rnames;
+    rname_models models;
+    uint32_t block_length;
+} *rname_block;
+
+/**
+ *
+ */
 typedef struct id_block_t{
     char **IDs;
     id_models models;
@@ -155,6 +169,7 @@ typedef struct sam_block_t{
     qv_block QVs;
     read_block reads;
     id_block IDs;
+    rname_block rnames;
     FILE *fs;
     char *path;
     uint32_t read_length;
@@ -183,6 +198,7 @@ stream_model* initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, u
 stream_model* initialize_stream_model_codebook(uint32_t rescale);
 
 read_models alloc_read_models_t(uint32_t read_length);
+rname_models alloc_rname_models_t();
 
 void alloc_stream_model_qv(qv_block qvBlock);
 
@@ -213,6 +229,8 @@ stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_
 
 int compress_id(Arithmetic_stream as, id_models models, char *id);
 int decompress_id(Arithmetic_stream as, id_models model, FILE *fs);
+
+int compress_rname(Arithmetic_stream as, rname_models models, char *rname);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);

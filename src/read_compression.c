@@ -12,7 +12,7 @@
 /************************
  * Compress the read
  **********************/
-uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine){
+uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine, uint8_t chr_change){
     
     int tempF, PosDiff, chrPos;
     // For now lets skip the unmapping ones
@@ -21,7 +21,7 @@ uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLi
         return 1;
     }
     // Compress sam line
-    PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos);
+    PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos, chr_change);
     tempF = compress_flag(as, models->flag, samLine->invFlag);
     //tempF = compress_flag(as, models->flag, 0);
     chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF);
@@ -97,7 +97,7 @@ uint32_t compress_pos_alpha(Arithmetic_stream as, stream_model *PA, uint32_t x){
 /***********************
  * Compress the Position
  **********************/
-uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint32_t pos){
+uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint32_t pos, uint8_t chr_change){
     
     static uint32_t prevPos = 0;
     enum {SMALL_STEP = 0, BIG_STEP = 1};
@@ -108,55 +108,14 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, u
     // i.e., SMALL_STEP and BIG_STEP
     
     // Check if we are changing chromosomes.
-    if (pos < prevPos) {
+    if (chr_change) {
         
         cumsumP = 0;
         for (i=0; i<MAX_BP_CHR; i++){
             snpInRef[i] = 0;
         }
         
-        // Send 0 to the Arithmetic Stream
-        send_value_to_as(as, P[0], 0);
-        
-        // Update model
-        update_model(P[0], 0);
-        
-        // Send CHR_CHANGE_FLAG to the Arithmetic Stream using the alphabet model
-        compress_pos_alpha(as, PA, CHR_CHANGE_FLAG);
-        
-        // Compress the position
-        x = pos;
-        if (P[0]->alphaExist[x]){
-            // Send x to the Arithmetic Stream
-            send_value_to_as(as, P[0], P[0]->alphaMap[x]);
-            // Update model
-            update_model(P[0], P[0]->alphaMap[x]);
-        }
-        else{
-            
-            // Send 0 to the Arithmetic Stream
-            send_value_to_as(as, P[0], 0);
-            
-            // Update model
-            update_model(P[0], 0);
-            
-            // Send the new letter to the Arithmetic Stream using the alphabet model
-            compress_pos_alpha(as, PA, x);
-            
-            // Update the statistics of the alphabet for x
-            P[0]->alphaExist[x] = 1;
-            P[0]->alphaMap[x] = P[0]->alphabetCard; // We reserve the bin 0 for the new symbol flag
-            P[0]->alphabet[P[0]->alphabetCard] = x;
-            
-            
-            // Update model
-            update_model(P[0], P[0]->alphabetCard++);
-        }
-        
-        
-        prevPos = pos;
-        
-        return x;
+        prevPos = 1;
     }
     
     
@@ -304,6 +263,8 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     int i = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
     uint32_t delta = 0;
     
+    uint32_t k, tempValue, tempSum = 0;
+    
     // pos in the reference
     cumsumP = cumsumP + deltaP - 1;// DeltaP is 1-based
     
@@ -377,11 +338,40 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                     
                 case '*':
                     return 1;
+                // Soft Clipping
                 case 'S':
                     if (firstCase == 1) {
                         // S is the first thing we see
                         S = atoi(cigar);
+                        k = 0, tempSum = 0;
+                        while (*(edits+k) == '0') {
+                            //tempValue = atoi((edits+k));
+                            //k += compute_num_digits(tempValue);
+                            tempSum++;//= tempValue;
+                            k += 2;
+                            //tempSum += isalpha(*(edits+k))? 1:0;
+                        }
+                        if (tempSum >= S) {
+                            while (*(edits+k)) {
+                                if (*(edits+k) != '^') {
+                                    tempValue = atoi((edits+k));
+                                    k += compute_num_digits(tempValue);
+                                    tempSum += tempValue;
+                                    tempSum += isalpha(*(edits+k))? 1:0;
+                                }
+                                else{
+                                    k++;
+                                    while ( isalpha(*(edits+k++)) ){;}
+                                    k--;
+                                }
+                            }
+                            if(tempSum + S > 101){
+                                edits += 2*S;
+                            }
+                        }
+                        
                         for (ctrS = 0; ctrS < S; ctrS++){
+                            
                             if (lastSnp != 0)
                                 lastSnp = add_snps_to_array(edits, SNPs, &numSnps, numIns, read);
                             Insers[numIns].pos = 0;

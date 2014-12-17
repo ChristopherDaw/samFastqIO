@@ -15,6 +15,7 @@
 int compress_block(Arithmetic_stream as, sam_block samBlock){
     
     unsigned int i = 0;
+    uint8_t chr_change;
     
     // Load the data from the first block
     //printf("Loading block of data into memory...\n");
@@ -30,9 +31,11 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     for (i = 0; i < samBlock->block_length; i++) {
         
         // Compress sam line
-        compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]));
-        QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+        chr_change = compress_rname(as, samBlock->rnames->models, samBlock->rnames->rnames[i]);
         compress_id(as, samBlock->IDs->models, samBlock->IDs->IDs[i]);
+        compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]), chr_change);
+        QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+        
         
     }
     
@@ -60,6 +63,8 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
     // Loop over the lines of the sam block
     for (i = 0; i < samBlock->block_length; i++) {
         
+        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+        
         decompression_flag = decompress_read(as,samBlock);
         
         if (decompression_flag == CHR_CHANGE_FLAG){
@@ -83,8 +88,6 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
             return 0;
         
         QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
-        
-        decompress_id(as, samBlock->IDs->models, samBlock->fs);
         
     }
     

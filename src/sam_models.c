@@ -54,7 +54,6 @@ char bp_complement(char c){
 //                                                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////
 
-
 stream_model* initialize_stream_model_id(uint32_t rescale, uint32_t context_size, uint32_t alphabet_card){
     
     uint32_t i = 0, j = 0;
@@ -518,6 +517,20 @@ id_models alloc_id_models_t(){
     rtn->zero_run = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 256);
     rtn->token_type = initialize_stream_model_id(rescale, MAX_NUMBER_TOKENS_ID, 10);
     
+    return rtn;
+}
+
+/**
+ *
+ */
+rname_models alloc_rname_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    rname_models rtn = calloc(1, sizeof(struct rname_models_t));
+    
+    rtn->same_ref = initialize_stream_model_id(rescale, 1, 2);
+    rtn->rname = initialize_stream_model_id(rescale, 256, 256);
     return rtn;
 }
 

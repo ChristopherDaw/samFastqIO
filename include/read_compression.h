@@ -51,7 +51,7 @@ typedef struct ins{
 // Protorypes for the compression functions
 uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag);
 uint32_t compress_pos_alpha(Arithmetic_stream as, stream_model *PA, uint32_t x);
-uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint32_t pos);
+uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint32_t pos, uint8_t chr_change);
 uint32_t compress_match(Arithmetic_stream a, stream_model *M, uint8_t match, uint32_t P);
 uint32_t compress_snps(Arithmetic_stream a, stream_model *S, uint8_t numSnps);
 uint32_t compress_indels(Arithmetic_stream a, stream_model *I, uint8_t numIndels);
@@ -73,14 +73,14 @@ uint32_t compute_delta_to_first_snp(uint32_t prevPos, uint32_t readLen);
 // Prototypes for tghe decompression functions
 uint32_t decompress_flag(Arithmetic_stream a, stream_model *F);
 uint32_t decompress_pos_alpha(Arithmetic_stream as, stream_model *PA);
-uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA);
+uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change);
 uint32_t decompress_match(Arithmetic_stream a, stream_model *M, uint32_t P);
 uint32_t decompress_snps(Arithmetic_stream a, stream_model *S);
 uint32_t decompress_indels(Arithmetic_stream a, stream_model *I);
 uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos, uint32_t flag);
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
-uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine);
+uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine, uint8_t chr_change);
 uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fs);
 uint32_t decompress_read(Arithmetic_stream as, sam_block sb);
 int store_reference_in_memory(FILE* refFile);

@@ -1,6 +1,6 @@
 # Makefile for building C programs
 
-SRC=main.c sam_models.c sam_file_allocation.c qv_codebook.c qv_compression.c read_compression.c read_decompression.c util.c well.c Arithmetic_stream.c stream_model.c pmf.c distortion.c quantizer.c sfio_ssh_session.c compression.c
+SRC=main.c sam_models.c sam_file_allocation.c qv_codebook.c qv_compression.c read_compression.c read_decompression.c util.c well.c Arithmetic_stream.c stream_model.c pmf.c distortion.c quantizer.c sfio_ssh_session.c compression.c io_functions.c id_compression.c
 
 OBJ=$(SRC:.c=.o)
 

@@ -45,6 +45,30 @@ uint32_t get_read_length(FILE *f){
 /**
  *
  */
+rname_block alloc_rname_block(){
+    uint32_t i = 0;
+    
+    rname_block rtn = (rname_block) calloc(1, sizeof(struct rname_block_t));
+    rtn->block_length = MAX_LINES_PER_BLOCK;
+    
+    rtn->rnames = (char**) calloc(rtn->block_length, sizeof(char*));
+    
+    // allocate the memory for each of the lines
+    for (i = 0; i < rtn->block_length; i++) {
+        
+        rtn->rnames[i] = (char*) calloc(MAX_READ_LENGTH, sizeof(char));
+    }
+    
+    // Allocate (and initialize) the models for the rnames
+    rtn->models = alloc_rname_models_t();
+    
+    return rtn;
+}
+
+
+/**
+ *
+ */
 id_block alloc_id_block(){
     
     uint32_t i = 0;
@@ -199,6 +223,9 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     //IDs
     sb->IDs = alloc_id_block();
     
+    //RNAMEs
+    sb->rnames = alloc_rname_block();
+    
     return sb;
     
 }
@@ -209,15 +236,18 @@ uint32_t load_sam_block(sam_block sb){
     read_line rline = NULL;
     qv_line qvline = NULL;
     
+    
     char buffer[1024];
     char *ptr;
     char *ID_line;
+    char *rname_line;
     
     for (i = 0; i < sb->block_length; i++) {
         
         rline = &(sb->reads->lines[i]);
         qvline = &(sb->QVs->qv_lines[i]);
         ID_line = sb->IDs->IDs[i];
+        rname_line = sb->rnames->rnames[i];
         
         rline->read_length = sb->read_length;
         qvline->columns = sb->read_length;
@@ -231,6 +261,7 @@ uint32_t load_sam_block(sam_block sb){
             rline->invFlag = atoi(ptr);
             // RNAME
             ptr = strtok(NULL, "\t");
+            strcpy(rname_line, ptr);
             // POS
             ptr = strtok(NULL, "\t");
             rline->pos = atoi(ptr);

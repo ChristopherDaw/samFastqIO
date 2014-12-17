@@ -141,7 +141,7 @@ uint32_t decompress_pos_alpha(Arithmetic_stream as, stream_model *PA){
 /**************************
  * Decompress the Position
  *************************/
-uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA){
+uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change){
     
     static uint32_t prevPos = 0;
     
@@ -149,25 +149,23 @@ uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA)
     
     enum {SMALL_STEP = 0, BIG_STEP = 1};
     
+    // Check if we are changing chromosomes.
+    if (chr_change)
+        prevPos = 0;
+    
     // Read from the AS and get the position
     alphaMapX = read_value_from_as(as, P[0]);
     
     x = P[0]->alphabet[alphaMapX];
     
-    // Either a new value of pos or a new chromosome
+    // Update the statistics
+    update_model(P[0], alphaMapX);
+    
+    // A new value of pos
     if (x == -1) {
-        
-        // Update the statistics
-        update_model(P[0], alphaMapX);
         
         // Read from the AS to get the unknown alphabet letter alpha
         x = decompress_pos_alpha(as, PA);
-        
-        // Check if we are changing chromosomes.
-        if (x == CHR_CHANGE_FLAG) {
-            prevPos = 0;
-            return CHR_CHANGE_FLAG;
-        }
         
         // Update the statistics of the alphabet for x
         P[0]->alphaExist[x] = 1;
@@ -175,13 +173,6 @@ uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA)
         P[0]->alphabet[P[0]->alphabetCard] = x;
         
         update_model(P[0], P[0]->alphabetCard++);
-    }
-    
-    else
-    {
-        // Update the statistics
-        update_model(P[0], alphaMapX);
-        
     }
     
     // Decompress the position diference (+ 1 to reserve 0 for new symbols)
