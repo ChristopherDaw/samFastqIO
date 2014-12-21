@@ -35,7 +35,7 @@
 #define MAX_NUMBER_TOKENS_ID 128
 
 // This limits us to chunks that aren't too big to fit into a modest amount of memory at a time
-#define MAX_LINES_PER_BLOCK			1000000
+#define MAX_LINES_PER_BLOCK			100000
 #define MAX_READS_PER_LINE			1022
 #define READ_LINEBUF_LENGTH			(MAX_READS_PER_LINE+2)
 
@@ -231,6 +231,7 @@ int compress_id(Arithmetic_stream as, id_models models, char *id);
 int decompress_id(Arithmetic_stream as, id_models model, FILE *fs);
 
 int compress_rname(Arithmetic_stream as, rname_models models, char *rname);
+int decompress_rname(Arithmetic_stream as, rname_models models, char *rname);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);

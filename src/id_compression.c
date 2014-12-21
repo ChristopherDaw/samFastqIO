@@ -45,18 +45,19 @@ int compress_rname(Arithmetic_stream as, rname_models models, char *rname){
     
     if(strcmp(rname, prev_name) == 0){
         
-        compress_uint8t(as, models->same_ref[0], 1);
+        compress_uint8t(as, models->same_ref[0], 0);
         return 0;
         
     }
     
     else{
-        compress_uint8t(as, models->same_ref[0], 0);
+        compress_uint8t(as, models->same_ref[0], 1);
         while (*rname) {
             compress_uint8t(as, models->rname[prevChar], *rname);
             prev_name[ctr++] = *rname;
             prevChar = *rname++;
         }
+        compress_uint8t(as, models->rname[prevChar], 0);
         prev_name[ctr] = 0;
         return 1;
     }
@@ -189,6 +190,35 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
     compress_uint8t(as, models->token_type[token_ctr], ID_END);
     
     return 1;
+}
+
+
+int decompress_rname(Arithmetic_stream as, rname_models models, char *rname){
+    
+    static char prev_name[1024] = {0};
+    static int prevChar = 0;
+    
+    uint8_t chr_change = 0, ch;
+    
+    uint32_t ctr = 0;
+    
+    chr_change = decompress_uint8t(as, models->same_ref[0]);
+    
+    if (chr_change) {
+        
+        while ( (ch = decompress_uint8t(as, models->rname[prevChar])) ) {
+            
+            if (ch == '\n') {
+                return -1;
+            }
+            prev_name[ctr++] = ch;
+            prevChar = ch;
+        }
+
+    }
+    
+    return chr_change;
+    
 }
 
 

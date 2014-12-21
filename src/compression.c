@@ -17,13 +17,20 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     unsigned int i = 0;
     uint8_t chr_change;
     
+    float counts_rname = 0, counts_id = 0, counts_reads = 0, counts_qv = 0, counts_load = 0, counts_qv_model = 0;
+    
+    clock_t begin;
+    
     // Load the data from the first block
     //printf("Loading block of data into memory...\n");
+    begin = clock();
     load_sam_block(samBlock);
-    
+    counts_load = (float)(clock() - begin)/CLOCKS_PER_SEC;
     // Compute the codebook and initialize the QV model
     //printf("Computing the codebook for the QVs...\n");
+    begin = clock();
     initialize_qv_model(as, samBlock->QVs, COMPRESSION);
+    counts_qv_model = (float)(clock() - begin)/CLOCKS_PER_SEC;
     
     
     //printf("Compressing the block...\n");
@@ -31,17 +38,46 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     for (i = 0; i < samBlock->block_length; i++) {
         
         // Compress sam line
+        begin = clock();
         chr_change = compress_rname(as, samBlock->rnames->models, samBlock->rnames->rnames[i]);
+        counts_rname += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        
+        if (chr_change == 1){
+            
+            //printf("Chromosome %d decompressed.\n", ++chrCtr);
+            
+            // Store Ref sequence in memory
+            store_reference_in_memory(samBlock->fref);
+            
+            // Clean snpInRef vector and reset cumsumP
+            cumsumP = 0;
+            memset(snpInRef, 0, MAX_BP_CHR);
+        }
+        begin = clock();
         compress_id(as, samBlock->IDs->models, samBlock->IDs->IDs[i]);
+        counts_id += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        begin = clock();
         compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]), chr_change);
+        counts_reads += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        begin = clock();
         QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
-        
-        
+        counts_qv += (float)(clock() - begin)/CLOCKS_PER_SEC;
     }
+    
+    foo();
+    
+    printf("Time load \t %f\n", ((float)counts_load));
+    printf("Time qv_model \t %f\n", ((float)counts_qv_model));
+    printf("Time rname \t %f\n", ((float)counts_rname));
+    printf("Time id \t %f\n", ((float)counts_id));
+    printf("Time reads \t %f\n", ((float)counts_reads));
+    printf("Time qv \t %f\n", ((float)counts_qv));
+    
+    
     
     // Check if we are in the last block
     if (i < MAX_LINES_PER_BLOCK){
-        compress_pos(as, samBlock->reads->models->pos, samBlock->reads->models->pos_alpha, END_GENOME_FLAG);
+        compress_rname(as, samBlock->rnames->models, "\n");
         return 0;
     }
     
@@ -50,8 +86,9 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
 
 int decompress_block(Arithmetic_stream as, sam_block samBlock){
     
-    static uint32_t chrCtr = 0;
     unsigned int i = 0;
+    
+    int32_t chr_change = 0;
     
     uint32_t decompression_flag = 0;
     
@@ -63,29 +100,26 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
     // Loop over the lines of the sam block
     for (i = 0; i < samBlock->block_length; i++) {
         
-        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+        chr_change = decompress_rname(as, samBlock->rnames->models, NULL);
         
-        decompression_flag = decompress_read(as,samBlock);
+        if (chr_change == -1)
+            return 0;
         
-        if (decompression_flag == CHR_CHANGE_FLAG){
+        if (chr_change == 1){
             
-            printf("Chromosome %d decompressed.\n", ++chrCtr);
+            //printf("Chromosome %d decompressed.\n", ++chrCtr);
             
             // Store Ref sequence in memory
             store_reference_in_memory(samBlock->fref);
             
-            // TODO clean this up
             // Clean snpInRef vector and reset cumsumP
             cumsumP = 0;
-            for (i=0; i<MAX_BP_CHR; i++){
-                snpInRef[i] = 0;
-            }
-            
-            continue;
+            memset(snpInRef, 0, MAX_BP_CHR);
         }
         
-        if (decompression_flag == END_GENOME_FLAG)
-            return 0;
+        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+        
+        decompression_flag = decompress_read(as,samBlock, chr_change);
         
         QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
         
@@ -111,7 +145,7 @@ void* compress(void *thread_info){
     
     Arithmetic_stream as = alloc_arithmetic_stream(COMPRESSION);
     
-    sam_block samBlock = alloc_sam_block_t(as, info.fsam, NULL, &opts, COMPRESSION);
+    sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, COMPRESSION);
     
     // Compress the blocks
     while(compress_block(as, samBlock)){
@@ -141,8 +175,6 @@ void* compress(void *thread_info){
 void* decompress(void *thread_info){
     
     uint64_t n = 0;
-    uint32_t i = 0;
-    uint8_t reference_flag = 0;
     clock_t begin = clock();
     clock_t ticks;
     
@@ -153,16 +185,6 @@ void* decompress(void *thread_info){
     sam_block samBlock = alloc_sam_block_t(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
     
     // Start the decompression
-    
-    // Store Ref sequence in memory
-    reference_flag = store_reference_in_memory(samBlock->fref);
-    
-    // TODO clean this up
-    // Clean snpInRef vector and reset cumsumP
-    cumsumP = 0;
-    for (i=0; i<MAX_BP_CHR; i++){
-        snpInRef[i] = 0;
-    }
     
     // Decompress the blocks
     while(decompress_block(as, samBlock)){

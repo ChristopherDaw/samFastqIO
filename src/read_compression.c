@@ -101,22 +101,14 @@ uint32_t compress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, u
     
     static uint32_t prevPos = 0;
     enum {SMALL_STEP = 0, BIG_STEP = 1};
-    int i = 0;
     int32_t x = 0;
     
     // TODO diferent update models for updating -1 and already seen symbols
     // i.e., SMALL_STEP and BIG_STEP
     
     // Check if we are changing chromosomes.
-    if (chr_change) {
-        
-        cumsumP = 0;
-        for (i=0; i<MAX_BP_CHR; i++){
-            snpInRef[i] = 0;
-        }
-        
-        prevPos = 1;
-    }
+    if (chr_change)
+        prevPos = 0;
     
     
     // Compress the position diference (+ 1 to reserve 0 for new symbols)
@@ -260,10 +252,13 @@ uint32_t compress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref,
 uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t deltaP, uint8_t flag){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, lastSnp = 1;
-    int i = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
+    int i = 0, tmpi = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
     uint32_t delta = 0;
     
     uint32_t k, tempValue, tempSum = 0;
+    
+    uint32_t posRef, posRead, tmpM, tmpI, tmpD, tmpS, match;
+    char *tmpcigar, *tmpEdits;
     
     // pos in the reference
     cumsumP = cumsumP + deltaP - 1;// DeltaP is 1-based
@@ -340,6 +335,111 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                     return 1;
                 // Soft Clipping
                 case 'S':
+                    if (firstCase == 1) {
+                        // S is the first thing we see
+                        S = atoi(cigar);
+                        
+                        // Reconstruct MD field in case it had errors
+                        // XXX: Reset the current MD field to be able to update it!
+                        
+                        // XXX: Check what happens when S is at the end...
+                        // XXX: Verify that the current code works as expected!
+                        
+                        posRef = cumsumP;
+                        posRead = S;
+                        tmpcigar = cigar + i + 1;
+                        tmpi = 0;
+                        tmpEdits = edits;
+                        while (*tmpcigar != 0){
+                            if ( isdigit( *(tmpcigar + tmpi) ) == 0 )
+                                switch ( *(tmpcigar + tmpi) ){
+                                    case 'M':
+                                        tmpM = atoi(tmpcigar);
+                                        match = 0;
+                                        for (ctr=0; ctr<tmpM; ctr++){
+                                            if (read[posRead + ctr] == reference[posRef + ctr]){
+                                                match++;
+                                            }else{
+                                                // add the value of match to MD (even if it is 0? I think so!)
+                                                sprintf(tmpEdits, "%d", match);
+                                                tmpEdits += compute_num_digits(match);
+                                                match = 0;
+                                                // Add the SNP to the MD
+                                                (*tmpEdits) = reference[posRef + ctr], tmpEdits++;
+                                            }
+                                        }
+                                        
+                                        // Update position of reference and read
+                                        posRef = posRef + tmpM;
+                                        posRead = posRead + tmpM;
+                                        
+                                        // Update tmpcigar
+                                        tmpcigar = tmpcigar + tmpi + 1;
+                                        tmpi = -1;
+                                        break;
+                                        
+                                    case 'I':
+                                        tmpI = atoi(tmpcigar);
+                                        
+                                        // Update position of read
+                                        posRead = posRead + tmpI;
+                                        
+                                        // Update tmpcigar
+                                        tmpcigar = tmpcigar + tmpi + 1;
+                                        tmpi = -1;
+                                        break;
+                                        
+                                    case 'D':
+                                        tmpD = atoi(tmpcigar);
+                                        *tmpEdits = '^', tmpEdits++;
+                                        for (ctr=0; ctr<tmpD; ctr++){
+                                            *tmpEdits = toupper(reference[posRef + ctr]), tmpEdits++;
+                                        }
+                                        
+                                        // Update pos reference
+                                        posRef = posRef + tmpD;
+                                        
+                                        // Update tmpcigar
+                                        tmpcigar = tmpcigar + tmpi + 1;
+                                        tmpi = -1;
+                                        break;
+                                        
+                                    case 'S':
+                                        tmpS = atoi(tmpcigar);
+                                        
+                                        // Update tmpcigar (we should be done with it)
+                                        tmpcigar = tmpcigar + tmpi + 1;
+                                        tmpi = -1;
+                                        break;
+                                }
+                            tmpi++;
+                        }
+                        tmpEdits = 0;
+                        
+                        for (ctrS = 0; ctrS < S; ctrS++){
+                            if (lastSnp != 0)
+                                lastSnp = add_snps_to_array(edits, SNPs, &numSnps, numIns, read);
+                            Insers[numIns].pos = 0;
+                            Insers[numIns].targetChar = char2basepair(read[ctrS]);
+                            numIns++;
+                        }
+                    }else{
+                        // We are at the end
+                        S = atoi(cigar);
+                        for (ctr = 0; ctr < S ; ctr++) {
+                            pos = M;
+                            Insers[numIns].pos = pos - prevPosI;
+                            Insers[numIns].targetChar = char2basepair(read[pos+numIns]);
+                            prevPosI = pos;
+                            numIns++;
+                        }
+                    }
+                    
+                    firstCase = 0;
+                    cigar = cigar + i + 1;
+                    i = -1;
+                    break;
+                    
                     if (firstCase == 1) {
                         // S is the first thing we see
                         S = atoi(cigar);

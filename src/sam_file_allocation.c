@@ -125,6 +125,8 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_block qv_info;
     
+    symbol_t *sym_buffer;
+    
     uint32_t i = 0;
     
     qv_info = (qv_block) calloc(1, sizeof(struct qv_block_t));
@@ -137,13 +139,17 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     struct distortion_t *dist = generate_distortion_matrix(41, opts->distortion);
     struct alphabet_t *alphabet = alloc_alphabet(41);
     
+    sym_buffer = (symbol_t*) calloc(qv_info->block_length, qv_info->columns*sizeof(symbol_t));
+    
     qv_info->qv_lines = (struct qv_line_t *) calloc(qv_info->block_length, sizeof(struct qv_line_t));
     
     // allocate the memory for each of the lines
     for (i = 0; i < qv_info->block_length; i++) {
         
-        qv_info->qv_lines[i].data = (symbol_t*) calloc(qv_info->columns, sizeof(symbol_t));
+        //qv_info->qv_lines[i].data = (symbol_t*) calloc(qv_info->columns, sizeof(symbol_t));
+        qv_info->qv_lines[i].data = sym_buffer;
         qv_info->qv_lines[i].columns = read_length;
+        sym_buffer += read_length;
     }
     
     // set the alphabet and distortion

@@ -15,7 +15,7 @@
 //                                                              //
 //**************************************************************//
 int store_reference_in_memory(FILE* refFile){
-    uint32_t ch, letterCount;
+    uint32_t letterCount, endoffile = 1;
     char header[1024];
     
     reference = (char *) malloc(MAX_BP_CHR*sizeof(char));
@@ -26,21 +26,24 @@ int store_reference_in_memory(FILE* refFile){
     // Remove the header
     fgets(header, sizeof(header), refFile);
     
-    do{
-        ch = getc(refFile);
+    while (fgets(&reference[letterCount], 1024, refFile))
+    {
         
-        if (ch !='\n')
-            reference[letterCount++] = toupper(ch);
+        if(reference[letterCount] == '>' || reference[letterCount] == '@'){
+            endoffile = 0;
+            break;
+        }
         
-        if(ch == '>' || ch == '@' || ch == EOF) break;
+        while (reference[letterCount++] != '\n' ) ;
+        letterCount--;
         
-    }while (1);
+    }
         
     reference[letterCount] = '\0';
     
     reference = (char *) realloc(reference, letterCount);
     
-    if (ch == EOF)
+    if (endoffile)
         return END_GENOME_FLAG;
     
     return letterCount;
@@ -51,14 +54,14 @@ int store_reference_in_memory(FILE* refFile){
 /************************
  * Decompress the read
  **********************/
-uint32_t decompress_read(Arithmetic_stream as, sam_block sb){
+uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change){
     
     int invFlag, tempP;
     
     read_models models = sb->reads->models;
     
     // Decompress the read
-    tempP = decompress_pos(as, models->pos, models->pos_alpha);
+    tempP = decompress_pos(as, models->pos, models->pos_alpha, chr_change);
     
     // Check wether we are changing Chromosomes or we are at the end pf the last chromosome
     if (tempP == CHR_CHANGE_FLAG)

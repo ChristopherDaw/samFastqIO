@@ -82,7 +82,9 @@ uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref
 
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine, uint8_t chr_change);
 uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fs);
-uint32_t decompress_read(Arithmetic_stream as, sam_block sb);
+uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change);
 int store_reference_in_memory(FILE* refFile);
+
+void foo();
 
 #endif

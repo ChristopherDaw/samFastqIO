@@ -35,7 +35,7 @@ void open_new_iofile(struct io_stream_t* ios){
         ios->fp = fopen(ios->filePath, "r");
         fread(ios->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, ios->fp);
         fclose(ios->fp);
-        remove(ios->filePath);
+//        remove(ios->filePath);
         file_available--;
         
     }

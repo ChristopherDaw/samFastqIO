@@ -156,7 +156,7 @@ int main(int argc, const char * argv[]) {
         exit(1);
     }
     
-    if (extract == COMPRESSION && file_idx != 2) {
+    if (extract == COMPRESSION && file_idx != 3) {
         printf("Wrong required filenames in compress mode.\n");
         usage(argv[0]);
         exit(1);
@@ -201,11 +201,11 @@ int main(int argc, const char * argv[]) {
     comp_info.fsam = (extract == COMPRESSION)? fopen( input_name, "r"): fopen(output_name, "w");
     
     // Open the Ref file
-    if (extract == DECOMPRESSION) {
+    //if (extract == DECOMPRESSION) {
         if (( comp_info.fref = fopen ( ref_name , "r" ) ) == NULL){
             fputs ("Chromosome (ref) File error\n",stderr); exit (1);
         }
-    }
+    //}
     
     comp_info.qv_opts = &opts;
     
@@ -215,7 +215,8 @@ int main(int argc, const char * argv[]) {
     time(&begin_main);
     
     if (extract == COMPRESSION){
-        rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
+        //rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
+        compress((void *)&comp_info);
         //file_available = 31;
         //rc = pthread_create(&network_thread, NULL, upload , (void *)&remote_info);
 //        upload((void *)&remote_info);
