@@ -28,6 +28,10 @@
 
 #define COMPRESSION 0
 #define DECOMPRESSION 1
+#define UPLOAD 2
+#define DOWNLOAD 3
+#define STREAMING 4
+
 #define ARITHMETIC_WORD_LENGTH 24
 
 #ifndef IDOFILE_PATH_ROOT
@@ -55,7 +59,7 @@ typedef struct io_stream_t {
     
     uint32_t fileCtr;
     
-    uint8_t direcction;
+    uint8_t mode;
     
 } *io_stream;
 

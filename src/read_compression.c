@@ -255,7 +255,7 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     int i = 0, tmpi = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
     uint32_t delta = 0;
     
-    uint32_t k, tempValue, tempSum = 0;
+    //uint32_t k, tempValue, tempSum = 0;
     
     uint32_t posRef, posRead, tmpM, tmpI, tmpD, tmpS, match;
     char *tmpcigar, *tmpEdits;
@@ -350,14 +350,14 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                         tmpcigar = cigar + i + 1;
                         tmpi = 0;
                         tmpEdits = edits;
+                        match = 0;
                         while (*tmpcigar != 0){
                             if ( isdigit( *(tmpcigar + tmpi) ) == 0 )
                                 switch ( *(tmpcigar + tmpi) ){
                                     case 'M':
                                         tmpM = atoi(tmpcigar);
-                                        match = 0;
                                         for (ctr=0; ctr<tmpM; ctr++){
-                                            if (read[posRead + ctr] == reference[posRef + ctr]){
+                                            if (read[posRead + ctr] == reference[posRef - 1 + ctr]){
                                                 match++;
                                             }else{
                                                 // add the value of match to MD (even if it is 0? I think so!)
@@ -365,13 +365,15 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                                                 tmpEdits += compute_num_digits(match);
                                                 match = 0;
                                                 // Add the SNP to the MD
-                                                (*tmpEdits) = reference[posRef + ctr], tmpEdits++;
+                                                (*tmpEdits) = reference[posRef - 1 + ctr], tmpEdits++;
                                             }
                                         }
                                         
                                         // Update position of reference and read
                                         posRef = posRef + tmpM;
                                         posRead = posRead + tmpM;
+                                        
+
                                         
                                         // Update tmpcigar
                                         tmpcigar = tmpcigar + tmpi + 1;
@@ -390,6 +392,13 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                                         break;
                                         
                                     case 'D':
+                                        
+                                        if (match > 0){
+                                            sprintf(tmpEdits, "%d", match);
+                                            tmpEdits += compute_num_digits(match);
+                                            match = 0;
+                                        }
+                                        
                                         tmpD = atoi(tmpcigar);
                                         *tmpEdits = '^', tmpEdits++;
                                         for (ctr=0; ctr<tmpD; ctr++){
@@ -405,6 +414,13 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                                         break;
                                         
                                     case 'S':
+                                        
+                                        if (match > 0){
+                                            sprintf(tmpEdits, "%d", match);
+                                            tmpEdits += compute_num_digits(match);
+                                            match = 0;
+                                        }
+                                        
                                         tmpS = atoi(tmpcigar);
                                         
                                         // Update tmpcigar (we should be done with it)
@@ -414,6 +430,13 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                                 }
                             tmpi++;
                         }
+                        
+                        if (match > 0){
+                            sprintf(tmpEdits, "%d", match);
+                            tmpEdits += compute_num_digits(match);
+                            match = 0;
+                        }
+                        
                         tmpEdits = 0;
                         
                         for (ctrS = 0; ctrS < S; ctrS++){
@@ -439,6 +462,8 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                     cigar = cigar + i + 1;
                     i = -1;
                     break;
+                    
+                    /*This is the old code
                     
                     if (firstCase == 1) {
                         // S is the first thing we see
@@ -494,6 +519,7 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
                     cigar = cigar + i + 1;
                     i = -1;
                     break;
+                    */
                 default:
                     break;
                     //printf("Something besides MIDS appeared in the cigar\n");

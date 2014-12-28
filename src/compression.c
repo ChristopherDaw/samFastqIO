@@ -17,9 +17,11 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     unsigned int i = 0;
     uint8_t chr_change;
     
-    float counts_rname = 0, counts_id = 0, counts_reads = 0, counts_qv = 0, counts_load = 0, counts_qv_model = 0;
+    float counts_rname = 0, counts_id = 0, counts_reads = 0, counts_qv = 0, counts_load = 0, counts_qv_model = 0, counts_quant = 0;
     
     clock_t begin;
+    
+    symbol_t *qArray;
     
     // Load the data from the first block
     //printf("Loading block of data into memory...\n");
@@ -30,8 +32,13 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     //printf("Computing the codebook for the QVs...\n");
     begin = clock();
     initialize_qv_model(as, samBlock->QVs, COMPRESSION);
+    //initialize_stream_model_qv_full(samBlock->QVs->model, samBlock->QVs->qlist);
     counts_qv_model = (float)(clock() - begin)/CLOCKS_PER_SEC;
     
+    //begin = clock();
+    //quantize_block(samBlock->QVs, samBlock->read_length);
+    //printf("lala %f\n",  (float)(clock() - begin)/CLOCKS_PER_SEC);
+    //qArray = copy_qlis_to_array(samBlock->QVs);
     
     //printf("Compressing the block...\n");
     // Loop over the lines of the sam block
@@ -60,17 +67,21 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
         compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]), chr_change);
         counts_reads += (float)(clock() - begin)/CLOCKS_PER_SEC;
         begin = clock();
-        QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]));
+        quantize_line(samBlock->QVs, &(samBlock->QVs->qv_lines[i]), samBlock->read_length);
+        counts_quant += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        begin = clock();
+        //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
+        QVs_compress3(as, samBlock->QVs->model, &(samBlock->QVs->qv_lines[i]));
         counts_qv += (float)(clock() - begin)/CLOCKS_PER_SEC;
     }
-    
-    foo();
     
     printf("Time load \t %f\n", ((float)counts_load));
     printf("Time qv_model \t %f\n", ((float)counts_qv_model));
     printf("Time rname \t %f\n", ((float)counts_rname));
     printf("Time id \t %f\n", ((float)counts_id));
     printf("Time reads \t %f\n", ((float)counts_reads));
+    
+    printf("Time quant \t %f\n", ((float)counts_quant));
     printf("Time qv \t %f\n", ((float)counts_qv));
     
     
@@ -143,13 +154,13 @@ void* compress(void *thread_info){
     
     struct qv_options_t opts = *(info.qv_opts);
     
-    Arithmetic_stream as = alloc_arithmetic_stream(COMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(info.mode);
     
-    sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, COMPRESSION);
+    sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, info.mode);
     
     // Compress the blocks
     while(compress_block(as, samBlock)){
-        reset_QV_block(samBlock->QVs, COMPRESSION);
+        reset_QV_block(samBlock->QVs, info.mode);
         n += samBlock->block_length;
     }
     

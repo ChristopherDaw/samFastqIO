@@ -14,6 +14,8 @@
 
 #include <pthread.h>
 
+
+
 /**
  * Displays a usage name
  * @param name Program name string
@@ -38,7 +40,7 @@ void usage(const char *name) {
 
 int main(int argc, const char * argv[]) {
     
-    uint32_t extract, i = 0, file_idx = 0, rc = 0;
+    uint32_t mode, i = 0, file_idx = 0, rc = 0;
     
     struct qv_options_t opts;
     
@@ -54,7 +56,7 @@ int main(int argc, const char * argv[]) {
     //pthread_t network_thread;
     
     time_t begin_main;
-    time_t end_main;
+    time_t end_main = 0;
     
     file_available = 0;
     
@@ -65,7 +67,7 @@ int main(int argc, const char * argv[]) {
     opts.uncompressed = 0;
     opts.distortion = DISTORTION_MSE;
     
-    extract = COMPRESSION;
+    mode = COMPRESSION;
     
     // No dependency, cross-platform command line parsing means no getopt
     // So we need to settle for less than optimal flexibility (no combining short opts, maybe that will be added later)
@@ -97,24 +99,36 @@ int main(int argc, const char * argv[]) {
         
         // Flags for options
         switch(argv[i][1]) {
-            case 'x':
-                extract = DECOMPRESSION;
-                i += 1;
-                break;
-            //case 'q':
-                //extract = COMPRESSION;
-                //i += 1;
-                //break;
+            // COMPRESSION
             case 'c':
-                extract = COMPRESSION;
+                mode = COMPRESSION;
                 opts.ratio = atof(argv[i+1]);
                 opts.mode = MODE_RATIO;
                 i += 2;
                 break;
+            // UPLOAD
+            case 'u':
+                mode = UPLOAD;
+                opts.ratio = atof(argv[i+1]);
+                opts.mode = MODE_RATIO;
+                i += 2;
+                break;
+            // EXTRACT
+            case 'x':
+                mode = DECOMPRESSION;
+                i += 1;
+                break;
+            // DOWNLOAD
+            case 'd':
+                mode = DOWNLOAD;
+                i += 1;
+                break;
+            // VERBOSE
             case 'v':
                 opts.verbose = 1;
                 i += 1;
                 break;
+            // HELP
             case 'h':
                 usage(argv[0]);
                 exit(0);
@@ -126,7 +140,8 @@ int main(int argc, const char * argv[]) {
                 //opts.training_size = atoi(argv[i+1]);
                 //i += 2;
                 //break;
-            case 'd':
+            // DISTORTION
+            case 'D':
                 switch (argv[i+1][0]) {
                     case 'M':
                         opts.distortion = DISTORTION_MSE;
@@ -150,19 +165,13 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    if (extract == DECOMPRESSION && file_idx != 3) {
-        printf("Missing required filenames in extract mode.\n");
+    if (file_idx != 3) {
+        printf("Missing required filenames.\n");
         usage(argv[0]);
         exit(1);
     }
     
-    if (extract == COMPRESSION && file_idx != 3) {
-        printf("Wrong required filenames in compress mode.\n");
-        usage(argv[0]);
-        exit(1);
-    }
-    
-    if (opts.verbose) {
+    /*if (opts.verbose) {
         if (extract) {
             printf("%s will be decoded to %s.\n", input_name, output_name);
         }
@@ -177,67 +186,109 @@ int main(int argc, const char * argv[]) {
             // @todo other modes?
         }
     }
-    
-    if (extract == COMPRESSION) {
-        ptr = strtok((char*)output_name, "@");
-        strcpy(remote_info.username, ptr);
-        ptr = strtok(NULL, ":");
-        strcpy(remote_info.host_name, ptr);
-        ptr = strtok(NULL, "\0");
-        strcpy(remote_info.filename, ptr);
-    }
-    
-    if (extract == DECOMPRESSION) {
-        ptr = strtok((char*)input_name, "@");
-        strcpy(remote_info.username, ptr);
-        ptr = strtok(NULL, ":");
-        strcpy(remote_info.host_name, ptr);
-        ptr = strtok(NULL, "\0");
-        strcpy(remote_info.filename, ptr);
-    }
-    //FILE * fcomp = (extract == COMPRESSION)? fopen(output_name, "w"):  fopen(input_name, "r");
-    
-    
-    comp_info.fsam = (extract == COMPRESSION)? fopen( input_name, "r"): fopen(output_name, "w");
-    
-    // Open the Ref file
-    //if (extract == DECOMPRESSION) {
-        if (( comp_info.fref = fopen ( ref_name , "r" ) ) == NULL){
-            fputs ("Chromosome (ref) File error\n",stderr); exit (1);
-        }
-    //}
-    
-    comp_info.qv_opts = &opts;
-    
+     
+     if (extract == COMPRESSION){
+     //rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
+     compress((void *)&comp_info);
+     //file_available = 31;
+     //rc = pthread_create(&network_thread, NULL, upload , (void *)&remote_info);
+     //        upload((void *)&remote_info);
+     }
+     else{
+     //rc = pthread_create(&compressor_thread, NULL, decompress , (void *)&comp_info);
+     //        rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
+     decompress((void *)&comp_info);
+     }
+     */
     
     file_available = 0;
     
     time(&begin_main);
     
-    if (extract == COMPRESSION){
-        //rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
-        compress((void *)&comp_info);
-        //file_available = 31;
-        //rc = pthread_create(&network_thread, NULL, upload , (void *)&remote_info);
-//        upload((void *)&remote_info);
+    comp_info.mode = mode;
+    
+    switch (mode) {
+        case COMPRESSION:
+            comp_info.fsam = fopen( input_name, "r");
+            comp_info.fref = fopen ( ref_name , "r" );
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            compress((void *)&comp_info);
+            time(&end_main);
+            break;
+            
+        case DECOMPRESSION:
+            comp_info.fsam = fopen(output_name, "w");
+            comp_info.fref = fopen ( ref_name , "r" );
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            decompress((void *)&comp_info);
+            time(&end_main);
+            break;
+            
+        case UPLOAD:
+            ptr = strtok((char*)output_name, "@");
+            strcpy(remote_info.username, ptr);
+            ptr = strtok(NULL, ":");
+            strcpy(remote_info.host_name, ptr);
+            ptr = strtok(NULL, "\0");
+            strcpy(remote_info.filename, ptr);
+            comp_info.fsam = fopen( input_name, "r");
+            comp_info.fref = fopen ( ref_name , "r" );
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
+            upload((void *)&remote_info);
+            
+            time(&end_main);
+            pthread_exit(NULL);
+            
+            
+            break;
+            
+        case DOWNLOAD:
+            ptr = strtok((char*)input_name, "@");
+            strcpy(remote_info.username, ptr);
+            ptr = strtok(NULL, ":");
+            strcpy(remote_info.host_name, ptr);
+            ptr = strtok(NULL, "\0");
+            strcpy(remote_info.filename, ptr);
+            comp_info.fsam = fopen(output_name, "w");
+            comp_info.fref = fopen ( ref_name , "r" );
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
+            decompress((void *)&comp_info);
+            
+            time(&end_main);
+            pthread_exit(NULL);
+            
+            break;
+            
+        default:
+            break;
     }
-    else{
-        //rc = pthread_create(&compressor_thread, NULL, decompress , (void *)&comp_info);
-//        rc = pthread_create(&compressor_thread, NULL, download , (void *)&remote_info);
-        decompress((void *)&comp_info);
-    }
+    
+
     
     if (rc){
         printf("ERROR; return code from pthread_create() is %d\n", rc);
         exit(-1);
     }
     
-    time(&end_main);
     
-    
-#ifdef _WIN32
-    system("pause");
-#endif
     
     printf("Total time elapsed: %ld seconds.\n",(end_main - begin_main));
     

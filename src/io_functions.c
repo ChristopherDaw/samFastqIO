@@ -30,7 +30,33 @@ void open_new_iofile(struct io_stream_t* ios){
     sprintf(ios->filePath, IDOFILE_PATH_ROOT "%010d", ios->fileCtr);
     ios->fileCtr++;
     
-    if (ios->direcction == DECOMPRESSION) {
+    
+    switch (ios->mode) {
+        case COMPRESSION:
+            ios->fp = fopen(ios->filePath, "w");
+            break;
+        case DECOMPRESSION:
+            ios->fp = fopen(ios->filePath, "r");
+            fread(ios->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, ios->fp);
+            fclose(ios->fp);
+//MODIFY            remove(ios->filePath);
+
+            break;
+        case UPLOAD:
+            ios->fp = fopen(ios->filePath, "w");
+            break;
+        case DOWNLOAD:
+            while (file_available == 0) ;
+            ios->fp = fopen(ios->filePath, "r");
+            fread(ios->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, ios->fp);
+            fclose(ios->fp);
+            //        remove(ios->filePath);
+            file_available--;
+            break;
+        default:
+            break;
+    }
+    /*if (ios->mode == DECOMPRESSION) {
         while (file_available == 0) ;
         ios->fp = fopen(ios->filePath, "r");
         fread(ios->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, ios->fp);
@@ -39,7 +65,7 @@ void open_new_iofile(struct io_stream_t* ios){
         file_available--;
         
     }
-    else ios->fp = fopen(ios->filePath, "w");
+    else ios->fp = fopen(ios->filePath, "w");*/
 }
 
 /**

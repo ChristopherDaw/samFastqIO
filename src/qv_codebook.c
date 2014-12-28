@@ -288,15 +288,20 @@ void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quant
 /**
  * Selects a quantizer for the given column from the quantizer list with the appropriate ratio
  */
-struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx) {
+struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx, uint8_t *type) {
 	uint32_t idx = get_symbol_index(list->input_alphabets[column], prev);
 	assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
 	if (well_1024a_bits(well, 7) >= list->qratio[column][idx]) {
         *q_idx = 2*idx+1;
+        *type = 1;
 		return list->q[column][2*idx+1];
+        // return NULL;
 	}
+    *type = 0;
     *q_idx = 2*idx;
 	return list->q[column][2*idx];
+    //return NULL;
+    
 }
 
 /**
@@ -511,7 +516,6 @@ void generate_codebooks(struct qv_block_t *info) {
     
 	// Miscellaneous variables
 	uint32_t column, j;
-	double total_mse;
     
 	// Output list of conditional quantizers
 	struct cond_quantizer_list_t *q_list;
@@ -554,7 +558,7 @@ void generate_codebooks(struct qv_block_t *info) {
     ratio = optimize_for_entropy(get_cond_pmf(in_pmfs, 0, 0), dist, get_entropy(get_cond_pmf(in_pmfs, 0, 0))*opts->ratio, &q_lo, &q_hi, opts->verbose);
     q_lo->ratio = ratio;
     q_hi->ratio = 1-ratio;
-    total_mse = ratio*q_lo->mse + (1-ratio)*q_hi->mse;
+    //total_mse = ratio*q_lo->mse + (1-ratio)*q_hi->mse;
     store_cond_quantizers(q_lo, q_hi, ratio, q_list, 0, 0);
     
     // free the used pmfs and alphabet
@@ -593,7 +597,7 @@ void generate_codebooks(struct qv_block_t *info) {
             store_cond_quantizers_indexed(q_lo, q_hi, ratio, q_list, column, j);
 
             // This actually needs to be scaled by the probability of this quantizer pair being used to be accurate, uniform assumption is an approximation
-            total_mse += (ratio*q_lo->mse + (1-ratio)*q_hi->mse) / q_output_union->size;
+            //total_mse += (ratio*q_lo->mse + (1-ratio)*q_hi->mse) / q_output_union->size;
 			
         }
         

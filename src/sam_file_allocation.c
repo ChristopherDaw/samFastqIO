@@ -10,7 +10,7 @@
 
 void reset_QV_block(qv_block qvb, uint8_t direction){
     
-    free_stream_model_qv(qvb->qlist, qvb->model);
+    //free_stream_model_qv(qvb->qlist, qvb->model);
     free_cond_quantizer_list(qvb->qlist);
     if (direction == COMPRESSION)
         free_conditional_pmf_list(qvb->training_stats);
@@ -127,7 +127,9 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     symbol_t *sym_buffer;
     
-    uint32_t i = 0;
+    uint32_t i = 0, input_alphabet_size = 41;
+    
+    uint32_t rescale = 1 << 20;
     
     qv_info = (qv_block) calloc(1, sizeof(struct qv_block_t));
     
@@ -136,8 +138,8 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     qv_info->columns = read_length;
     
     // Allocate the QV alphabet and the distortion matrix
-    struct distortion_t *dist = generate_distortion_matrix(41, opts->distortion);
-    struct alphabet_t *alphabet = alloc_alphabet(41);
+    struct distortion_t *dist = generate_distortion_matrix(input_alphabet_size, opts->distortion);
+    struct alphabet_t *alphabet = alloc_alphabet(input_alphabet_size);
     
     sym_buffer = (symbol_t*) calloc(qv_info->block_length, qv_info->columns*sizeof(symbol_t));
     
@@ -158,11 +160,53 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_info->opts = opts;
     
+    qv_info->model = alloc_stream_model_qv(read_length, input_alphabet_size, rescale);
+    
     
     
     return qv_info;
     
 }
+
+/**
+ *
+ */
+simplified_qv_block alloc_simplified_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
+    
+    simplified_qv_block qv_info;
+    
+    symbol_t *sym_buffer;
+    
+    uint32_t i = 0, input_alphabet_size = 41;
+    
+    uint32_t rescale = 1 << 20;
+    
+    qv_info = (simplified_qv_block) calloc(1, sizeof(struct qv_block_t));
+    
+    qv_info->block_length = MAX_LINES_PER_BLOCK;
+    
+    qv_info->columns = read_length;
+    
+    // Allocate the QV alphabet and the distortion matrix
+    sym_buffer = (symbol_t*) calloc(qv_info->block_length, qv_info->columns*sizeof(symbol_t));
+    
+    qv_info->qv_lines = (struct qv_line_t *) calloc(qv_info->block_length, sizeof(struct qv_line_t));
+    
+    // allocate the memory for each of the lines
+    for (i = 0; i < qv_info->block_length; i++) {
+        
+        //qv_info->qv_lines[i].data = (symbol_t*) calloc(qv_info->columns, sizeof(symbol_t));
+        qv_info->qv_lines[i].data = sym_buffer;
+        qv_info->qv_lines[i].columns = read_length;
+        sym_buffer += read_length;
+    }
+    
+    qv_info->model = alloc_stream_model_qv(read_length, input_alphabet_size, rescale);
+    
+    return qv_info;
+    
+}
+
 
 sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression){
     

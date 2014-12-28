@@ -22,18 +22,41 @@
  * Allocates a file stream wrapper for the arithmetic encoder, with a given
  * already opened file handle
  */
-struct io_stream_t *alloc_io_stream(uint8_t in) {
+struct io_stream_t *alloc_io_stream(uint8_t mode) {
     
     struct io_stream_t *rtn = (struct io_stream_t *) calloc(1, sizeof(struct io_stream_t));
     
-    rtn->direcction = in;
+    rtn->mode = mode;
     
     rtn->buf = (uint8_t *) calloc(IO_STREAM_BUF_LEN + 1, sizeof(uint8_t));
     
-    if (in == DECOMPRESSION) {
+    switch (mode) {
+        case COMPRESSION:
+            clean_compressed_dir(rtn);
+            rtn->fileCtr = 0;
+            open_new_iofile(rtn);
+            break;
+        case DECOMPRESSION:
+            open_new_iofile(rtn);
+            break;
+        case UPLOAD:
+            clean_compressed_dir(rtn);
+            rtn->fileCtr = 0;
+            open_new_iofile(rtn);
+            break;
+        case DOWNLOAD:
+            clean_compressed_dir(rtn);
+            rtn->fileCtr = 0;
+            open_new_iofile(rtn);
+            break;
+        default:
+            break;
+    }
+    
+    /*if (mode == DECOMPRESSION) {
         
 //        clean_compressed_dir(rtn);
-        file_available = 100;
+//        file_available = 100;
         rtn->fileCtr = 0;
         open_new_iofile(rtn);
     }
@@ -42,8 +65,7 @@ struct io_stream_t *alloc_io_stream(uint8_t in) {
         clean_compressed_dir(rtn);
         
         rtn->fileCtr = 0;
-    }
-    
+    }*/
     
     rtn->bufPos = 0;
     rtn->bitPos = 0;

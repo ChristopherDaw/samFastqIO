@@ -50,7 +50,6 @@ struct cond_pmf_list_t {
 	struct pmf_t **pmfs;
 	struct pmf_list_t *marginal_pmfs;
 };
-
 /**
  * Stores an array of quantizer pointers for the column for all possible left context
  * values. Unused ones are left as null pointers. This is also stored as a flat array
@@ -68,6 +67,7 @@ struct cond_quantizer_list_t {
 	struct qv_options_t *options;
 };
 
+
 // Memory management
 struct cond_pmf_list_t *alloc_conditional_pmf_list(const struct alphabet_t *alphabet, uint32_t columns);
 struct cond_quantizer_list_t *alloc_conditional_quantizer_list(uint32_t columns);
@@ -83,13 +83,15 @@ struct quantizer_t *get_cond_quantizer_indexed(struct cond_quantizer_list_t *lis
 struct quantizer_t *get_cond_quantizer(struct cond_quantizer_list_t *list, uint32_t column, symbol_t prev);
 void store_cond_quantizers(struct quantizer_t *restrict lo, struct quantizer_t *restrict hi, double ratio, struct cond_quantizer_list_t *list, uint32_t column, symbol_t prev);
 void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quantizer_t *restrict hi, double ratio, struct cond_quantizer_list_t *list, uint32_t column, uint32_t index);
-struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx);
+struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx, uint8_t *type);
 uint32_t find_state_encoding(struct quantizer_t *codebook, symbol_t value);
 
 uint32_t compress_int(Arithmetic_stream as, stream_model *PA, uint32_t x);
 uint32_t decompress_int(Arithmetic_stream as, stream_model *PA);
 uint32_t compress_char_array(Arithmetic_stream as, stream_model *model, int *a, uint32_t len);
 uint32_t decompress_char_array(Arithmetic_stream as, stream_model *model, int *a, uint32_t len);
+
+
 
 
 

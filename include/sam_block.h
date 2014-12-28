@@ -35,7 +35,7 @@
 #define MAX_NUMBER_TOKENS_ID 128
 
 // This limits us to chunks that aren't too big to fit into a modest amount of memory at a time
-#define MAX_LINES_PER_BLOCK			100000
+#define MAX_LINES_PER_BLOCK			1000000
 #define MAX_READS_PER_LINE			1022
 #define READ_LINEBUF_LENGTH			(MAX_READS_PER_LINE+2)
 
@@ -54,6 +54,7 @@
 struct compressor_info_t{
     FILE *fsam;
     FILE *fref;
+    uint8_t mode;
     struct qv_options_t *qv_opts;
 };
 
@@ -162,6 +163,15 @@ typedef struct qv_block_t {
     stream_model *codebook_model;
 }*qv_block;
 
+typedef struct simplified_qv_block_t {
+    uint32_t block_length;
+    uint32_t columns;
+    struct qv_line_t *qv_lines;
+    symbol_t *qArray;
+    struct well_state_t well;
+    stream_model *model;
+}*simplified_qv_block;
+
 /**
  *
  */
@@ -194,13 +204,15 @@ stream_model* initialize_stream_model_snps(uint32_t readLength, uint32_t rescale
 stream_model* initialize_stream_model_indels(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_var(uint32_t readLength, uint32_t rescale);
 stream_model* initialize_stream_model_chars(uint32_t rescale);
-stream_model* initialize_stream_model_qv(struct cond_quantizer_list_t *q_list, uint32_t rescale);
+void initialize_stream_model_qv(stream_model *s, struct cond_quantizer_list_t *q_list);
 stream_model* initialize_stream_model_codebook(uint32_t rescale);
 
 read_models alloc_read_models_t(uint32_t read_length);
 rname_models alloc_rname_models_t();
 
-void alloc_stream_model_qv(qv_block qvBlock);
+//void alloc_stream_model_qv(qv_block qvBlock);
+
+stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabet_size, uint32_t rescale);
 
 
 sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression);
@@ -221,9 +233,16 @@ void read_codebooks(Arithmetic_stream as, struct qv_block_t *info);
 struct cond_quantizer_list_t *read_codebook(Arithmetic_stream as, struct qv_block_t *info);
 
 void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression);
+void initialize_stream_model_qv_full(stream_model *s, struct cond_quantizer_list_t *q_list);
 void reset_QV_block(qv_block qvb, uint8_t direction);
 
+double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, uint8_t **qratio, qv_line line, symbol_t *qArray, stream_model *model, struct well_state_t *well);
+double QVs_compress3(Arithmetic_stream as, stream_model* models, qv_line line);
+void quantize_line(qv_block qb, qv_line qline, uint32_t read_length);
 id_models alloc_id_models_t();
+
+symbol_t * copy_qlis_to_array(qv_block qb);
+void quantize_block(qv_block qb, uint32_t read_length);
 
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 
