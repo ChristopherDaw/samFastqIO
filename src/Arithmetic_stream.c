@@ -228,7 +228,7 @@ Arithmetic_stream alloc_arithmetic_stream(uint8_t direction) {
     
     a->ios = alloc_io_stream(direction);
     
-    if (direction == DECOMPRESSION) {
+    if (direction == DECOMPRESSION || direction == DOWNLOAD) {
         //Read the tag
         a->t = stream_read_bits(a->ios, ARITHMETIC_WORD_LENGTH);
     }

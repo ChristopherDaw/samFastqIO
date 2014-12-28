@@ -127,7 +127,7 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     symbol_t *sym_buffer;
     
-    uint32_t i = 0, input_alphabet_size = 41;
+    uint32_t i = 0;
     
     uint32_t rescale = 1 << 20;
     
@@ -138,8 +138,8 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     qv_info->columns = read_length;
     
     // Allocate the QV alphabet and the distortion matrix
-    struct distortion_t *dist = generate_distortion_matrix(input_alphabet_size, opts->distortion);
-    struct alphabet_t *alphabet = alloc_alphabet(input_alphabet_size);
+    struct distortion_t *dist = generate_distortion_matrix(QV_ALPHABET_SIZE, opts->distortion);
+    struct alphabet_t *alphabet = alloc_alphabet(QV_ALPHABET_SIZE);
     
     sym_buffer = (symbol_t*) calloc(qv_info->block_length, qv_info->columns*sizeof(symbol_t));
     
@@ -160,7 +160,7 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_info->opts = opts;
     
-    qv_info->model = alloc_stream_model_qv(read_length, input_alphabet_size, rescale);
+    qv_info->model = alloc_stream_model_qv(read_length, QV_ALPHABET_SIZE, rescale);
     
     
     
@@ -208,7 +208,7 @@ simplified_qv_block alloc_simplified_qv_block_t(struct qv_options_t *opts, uint3
 }
 
 
-sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression){
+sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t mode){
     
     uint32_t i = 0;
     
@@ -225,7 +225,7 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     sb->block_length = MAX_LINES_PER_BLOCK;
     
     // Get the Read Length
-    if (decompression) {
+    if (mode == DECOMPRESSION || mode == DOWNLOAD) {
         // get the readLength from the ios buffer
         sb->read_length =  decompress_int(as, sb->codebook_model);
     }
@@ -247,7 +247,7 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     sb->QVs->codebook_model = sb->codebook_model;
     //WELL random generator
     memset(&(sb->QVs->well), 0, sizeof(struct well_state_t));
-    if (decompression) {
+    if (mode == DECOMPRESSION || mode == DOWNLOAD) {
         for (i = 0; i < 32; ++i) {
             sb->QVs->well.state[i] = decompress_int(as, sb->codebook_model);
         }

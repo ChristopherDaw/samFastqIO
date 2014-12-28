@@ -423,7 +423,7 @@ stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabe
     // Allocate jagged array, one set of stats per column
     for (i = 0; i < read_length; ++i) {
         // And for each column, one set of stats per low/high quantizer per previous context
-        for (j = 0; j < 2*input_alphabet_size; ++j) {
+        for (j = 0; j < input_alphabet_size; ++j) {
             // Finally each individual stat structure needs to be filled in uniformly
             model_idx = get_qv_model_index(i, j);
             //model_idx = ((i & 0xff) << 8 | (j & 0xff));

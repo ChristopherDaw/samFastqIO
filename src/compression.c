@@ -35,10 +35,10 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
     //initialize_stream_model_qv_full(samBlock->QVs->model, samBlock->QVs->qlist);
     counts_qv_model = (float)(clock() - begin)/CLOCKS_PER_SEC;
     
-    //begin = clock();
+    begin = clock();
     //quantize_block(samBlock->QVs, samBlock->read_length);
-    //printf("lala %f\n",  (float)(clock() - begin)/CLOCKS_PER_SEC);
-    //qArray = copy_qlis_to_array(samBlock->QVs);
+    qArray = copy_qlis_to_array(samBlock->QVs);
+    printf("lala %f\n",  (float)(clock() - begin)/CLOCKS_PER_SEC);
     
     //printf("Compressing the block...\n");
     // Loop over the lines of the sam block
@@ -50,8 +50,6 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
         counts_rname += (float)(clock() - begin)/CLOCKS_PER_SEC;
         
         if (chr_change == 1){
-            
-            //printf("Chromosome %d decompressed.\n", ++chrCtr);
             
             // Store Ref sequence in memory
             store_reference_in_memory(samBlock->fref);
@@ -66,12 +64,13 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
         begin = clock();
         compress_read(as, samBlock->reads->models, &(samBlock->reads->lines[i]), chr_change);
         counts_reads += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        //begin = clock();
+        //quantize_line(samBlock->QVs, &(samBlock->QVs->qv_lines[i]), samBlock->read_length);
+        //counts_quant += (float)(clock() - begin)/CLOCKS_PER_SEC;
         begin = clock();
-        quantize_line(samBlock->QVs, &(samBlock->QVs->qv_lines[i]), samBlock->read_length);
-        counts_quant += (float)(clock() - begin)/CLOCKS_PER_SEC;
-        begin = clock();
-        //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
-        QVs_compress3(as, samBlock->QVs->model, &(samBlock->QVs->qv_lines[i]));
+        //QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]), qArray);
+        QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
+        //QVs_compress3(as, samBlock->QVs->model, &(samBlock->QVs->qv_lines[i]));
         counts_qv += (float)(clock() - begin)/CLOCKS_PER_SEC;
     }
     
@@ -154,11 +153,13 @@ void* compress(void *thread_info){
     
     struct qv_options_t opts = *(info.qv_opts);
     
+    // Allocs the Arithmetic and the I/O stream
     Arithmetic_stream as = alloc_arithmetic_stream(info.mode);
     
+    // Allocs the different blocks and all the models for the Arithmetic
     sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, info.mode);
     
-    // Compress the blocks
+    // Load and compress the blocks
     while(compress_block(as, samBlock)){
         reset_QV_block(samBlock->QVs, info.mode);
         n += samBlock->block_length;

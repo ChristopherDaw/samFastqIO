@@ -54,7 +54,7 @@ double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, 
     uint8_t prev_qv = 0, currentQV = 0, quantizer_type, qv1;
     uint32_t columns = line->columns;
     
-    stream_model mod;
+    //stream_model mod;
     
     for (s = 0; s < columns; ++s) {
         
@@ -83,10 +83,10 @@ double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, 
         
         q_state1 = qArray[idx1+1];
         
-        mod = model[get_qv_model_index(s, idx)];
+        //mod = model[get_qv_model_index(s, idx)];
         //begin = clock();
         //compress_qv(as, info->model[model_idx], q_state);
-//        compress_qv(as, mod, q_state1);
+        compress_qv(as, model, get_qv_model_index(s, idx), q_state1);
         
         prev_qv = qv1;
     }

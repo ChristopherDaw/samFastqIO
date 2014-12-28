@@ -19,6 +19,7 @@
 
 #include "stream_model.h"
 
+#define QV_ALPHABET_SIZE 41
 
 #define MODE_RATIO		0	// Traditional implementation, output bitrate is scaled from input
 #define MODE_FIXED		1	// Fixed rate per symbol

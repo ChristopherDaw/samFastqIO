@@ -51,6 +51,8 @@
 #define MAX_CARDINALITY 50000000
 
 
+
+
 struct compressor_info_t{
     FILE *fsam;
     FILE *fref;
