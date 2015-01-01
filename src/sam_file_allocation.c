@@ -160,7 +160,7 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_info->opts = opts;
     
-    qv_info->model = alloc_stream_model_qv(read_length, QV_ALPHABET_SIZE, rescale);
+    qv_info->model = alloc_stream_model_qv(read_length, QV_ALPHABET_SIZE + 1, rescale);
     
     
     

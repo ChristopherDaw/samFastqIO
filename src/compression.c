@@ -69,7 +69,8 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
         //counts_quant += (float)(clock() - begin)/CLOCKS_PER_SEC;
         begin = clock();
         //QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]), qArray);
-        QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
+        QVs_compress(as, samBlock->QVs, i, qArray);
+        //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
         //QVs_compress3(as, samBlock->QVs->model, &(samBlock->QVs->qv_lines[i]));
         counts_qv += (float)(clock() - begin)/CLOCKS_PER_SEC;
     }

@@ -423,7 +423,7 @@ stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabe
     // Allocate jagged array, one set of stats per column
     for (i = 0; i < read_length; ++i) {
         // And for each column, one set of stats per low/high quantizer per previous context
-        for (j = 0; j < input_alphabet_size; ++j) {
+        for (j = 0; j < 2*input_alphabet_size; ++j) {
             // Finally each individual stat structure needs to be filled in uniformly
             model_idx = get_qv_model_index(i, j);
             //model_idx = ((i & 0xff) << 8 | (j & 0xff));
@@ -503,7 +503,7 @@ void initialize_stream_model_qv_full(stream_model *s, struct cond_quantizer_list
     // Allocate jagged array, one set of stats per column
     for (i = 0; i < q_list->columns; ++i) {
         // And for each column, one set of stats per low/high quantizer per previous context
-        for (j = 0; j < 42; ++j) {
+        for (j = 0; j < 2*QV_ALPHABET_SIZE; ++j) {
             // Finally each individual stat structure needs to be filled in uniformly
             model_idx = get_qv_model_index(i, j);
             //model_idx = ((i & 0xff) << 8 | (j & 0xff));
@@ -511,11 +511,11 @@ void initialize_stream_model_qv_full(stream_model *s, struct cond_quantizer_list
             //s[model_idx]->counts = (uint32_t *) calloc(q_list->q[i][j]->output_alphabet->size, sizeof(uint32_t));
             
             // Initialize the quantizer's stats uniformly
-            for (k = 0; k < 42; k++) {
+            for (k = 0; k < QV_ALPHABET_SIZE; k++) {
                 s[model_idx]->counts[k] = 1;
             }
-            s[model_idx]->n = 42;
-            s[model_idx]->alphabetCard = 42;
+            s[model_idx]->n = QV_ALPHABET_SIZE;
+            s[model_idx]->alphabetCard = QV_ALPHABET_SIZE;
             
             // Step size is 8 counts per symbol seen to speed convergence
             s[model_idx]->step = 8;

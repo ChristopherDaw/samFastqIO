@@ -58,9 +58,12 @@ int main(int argc, const char * argv[]) {
     time_t begin_main;
     time_t end_main = 0;
     
+    mkdir("/tmp/idoFiles", S_IRWXO | S_IRWXU | S_IRWXG);
+    
     file_available = 0;
     
     opts.training_size = 1000000;
+    opts.training_period = 0;
     opts.verbose = 0;
     opts.stats = 0;
     opts.ratio = 1;
@@ -136,10 +139,14 @@ int main(int argc, const char * argv[]) {
                 opts.stats = 1;
                 i += 1;
                 break;
-            //case 't':
-                //opts.training_size = atoi(argv[i+1]);
-                //i += 2;
-                //break;
+            case 't':
+                opts.training_size = atoi(argv[i+1]);
+                i += 2;
+                break;
+            case 'w':
+                opts.training_period = atoi(argv[i+1]);
+                i += 2;
+                break;
             // DISTORTION
             case 'D':
                 switch (argv[i+1][0]) {

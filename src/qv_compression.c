@@ -96,34 +96,17 @@ double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, 
 }
 
 
-double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line, symbol_t *qArray) {
+double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t *qArray) {
     
     
-    
-    clock_t begin;
-    
-    uint32_t s = 0, idx = 0, q_state = 0, q_state1 = 0, idx1 = 0;
+    uint32_t s = 0, idx = 0, q_state1 = 0, idx1 = 0;
     //double error = 0.0;
-    uint8_t qv = 0, prev_qv = 0, currentQV = 0, quantizer_type, qv1;
-    uint32_t columns = line->columns;
+    uint8_t prev_qv = 0, currentQV = 0, quantizer_type, qv1;
+    uint32_t columns = info->columns;
     
-    struct quantizer_t *q;
-    
-    stream_model mod;
-        
-    // Select first column's codebook with no left context
-    //q = choose_quantizer(info->qlist, &info->well, 0, 0, &idx);
-        
-    // Quantize, compress and calculate error simultaneously
-    // Reading in the lines corrects the quality values to alphabet offsets
-    //qv = q->q[line->data[0]];
-    //q_state = get_symbol_index(q->output_alphabet, qv);
-    
-    //compress_qv(as, info->model, get_qv_model_index(0, idx), q_state);
-        
-    //error = compute_distortion(line->data[0], qv, info->opts->distortion);
-        
-    //prev_qv = qv;
+    struct qv_line_t qline = info->qv_lines[line];
+    struct alphabet_t **inAlpha = info->qlist->input_alphabets;
+    uint8_t **ratios = info->qlist->qratio;
         
     for (s = 0; s < columns; ++s) {
         
@@ -131,9 +114,11 @@ double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line, symbol_t 
         //q = choose_quantizer(info->qlist, &info->well, s, prev_qv, &idx, &quantizer_type);
         
         //idx = get_symbol_index(info->qlist->input_alphabets[s], prev_qv);
-        idx = info->qlist->input_alphabets[s]->indexes[prev_qv];
+        //idx = info->qlist->input_alphabets[s]->indexes[prev_qv];
+        idx = inAlpha[s]->indexes[prev_qv];
         assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
-        if (well_1024a_bits(&info->well, 7) >= info->qlist->qratio[s][idx]) {
+        //if (well_1024a_bits(&info->well, 7) >= info->qlist->qratio[s][idx]) {
+        if (well_1024a_bits(&info->well, 7) >= ratios[s][idx]) {
             idx = 2*idx+1;
             quantizer_type = 1;
         }
@@ -144,7 +129,7 @@ double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line, symbol_t 
        //counts_1 += (float)(clock() - begin)/CLOCKS_PER_SEC;
         
         //begin = clock();
-        currentQV = line->data[s];
+        currentQV = qline.data[s];
         //qv = q->q[currentQV];
         
         //q_state = get_symbol_index(q->output_alphabet, qv);
@@ -170,12 +155,12 @@ double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line, symbol_t 
         
         //model_idx = 0;
         
-        mod = info->model[get_qv_model_index(s, idx)];
+        //mod = info->model[get_qv_model_index(s, idx)];
         //begin = clock();
         //compress_qv(as, info->model[model_idx], q_state);
-//        compress_qv(as, mod, q_state1);
+        //compress_qv(as, mod, q_state1);
         //counts_6 += (float)(clock() - begin)/CLOCKS_PER_SEC;
-        
+        compress_qv(as, info->model, get_qv_model_index(s, idx), q_state1);
         //error += compute_distortion(line->data[s], qv, info->opts->distortion);
         prev_qv = qv1;
     }

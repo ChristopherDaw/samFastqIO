@@ -34,7 +34,7 @@ struct io_stream_t *alloc_io_stream(uint8_t mode) {
         case COMPRESSION:
             clean_compressed_dir(rtn);
             rtn->fileCtr = 0;
-            open_new_iofile(rtn);
+            //open_new_iofile(rtn);
             break;
         case DECOMPRESSION:
             open_new_iofile(rtn);
@@ -42,7 +42,7 @@ struct io_stream_t *alloc_io_stream(uint8_t mode) {
         case UPLOAD:
             clean_compressed_dir(rtn);
             rtn->fileCtr = 0;
-            open_new_iofile(rtn);
+            //open_new_iofile(rtn);
             break;
         case DOWNLOAD:
             clean_compressed_dir(rtn);

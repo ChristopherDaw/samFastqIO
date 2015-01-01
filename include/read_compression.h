@@ -60,7 +60,7 @@ uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32
 
 
 uint32_t compress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx, uint8_t qv);
-double QVs_compress(Arithmetic_stream as, qv_block info, qv_line line, symbol_t *qArray);
+double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t *qArray);
 double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv);
 uint32_t decompress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx);
 
