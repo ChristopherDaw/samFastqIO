@@ -326,6 +326,7 @@ void calculate_statistics(struct qv_block_t *info) {
 
     // First, find conditional PMFs
     for (line_idx = 0; line_idx < info->block_length; ++line_idx) {
+        //load_qv_line(info);
         line = &info->qv_lines[line_idx];
         pmf_increment(get_cond_pmf(pmf_list, 0, 0), line->data[0]);
         for (column = 1; column < info->columns; ++column) {

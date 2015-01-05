@@ -414,7 +414,7 @@ stream_model* initialize_stream_model_chars(uint32_t rescale){
 stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabet_size, uint32_t rescale){
     
     stream_model *s;
-    uint32_t i = 0, j = 0, model_idx = 0;
+    uint32_t i = 0, j = 0, k = 0, model_idx = 0;
     
     uint32_t num_models = 0xffff;
     
@@ -429,6 +429,13 @@ stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabe
             //model_idx = ((i & 0xff) << 8 | (j & 0xff));
             s[model_idx] = (stream_model) calloc(1, sizeof(struct stream_model_t));
             s[model_idx]->counts = (uint32_t *) calloc(input_alphabet_size, sizeof(uint32_t));
+            
+            // Initialize the quantizer's stats uniformly
+            for (k = 0; k < QV_ALPHABET_SIZE; k++) {
+                s[model_idx]->counts[k] = 1;
+            }
+            s[model_idx]->n = QV_ALPHABET_SIZE;
+            s[model_idx]->alphabetCard = QV_ALPHABET_SIZE;
             
             // Step size is 8 counts per symbol seen to speed convergence
             s[model_idx]->step = 8;
@@ -650,12 +657,7 @@ stream_model* initialize_stream_model_codebook(uint32_t rescale){
     return s;
     
 }
-
-
-
-/**
- *
- */
+/*
 void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression){
     
     //uint32_t rescale = 1 << 20;
@@ -687,13 +689,61 @@ void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompr
         begin = clock();
         write_codebooks(as, qvBlock);
         printf("%f\n", (float)(clock() - begin)/CLOCKS_PER_SEC);
-
+        
     }
     
     //print_codebook(qvBlock->qlist);
     
     // initialize the model of the qv using the codebooks
     initialize_stream_model_qv_full(qvBlock->model, qvBlock->qlist);
+}
+ */
+
+
+void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompression){
+    
+    //uint32_t rescale = 1 << 20;
+    
+    clock_t begin= clock();
+
+    
+    // We need to generate the Codebooks of the QVs in order to initialize the stream_model
+    if (decompression) {
+        
+        // Read the codebook from the input stream
+        read_codebooks(as, qvBlock);
+    }
+    else{
+        
+        // Load the traininig block
+        
+        load_qv_training_block(qvBlock);
+        
+        // We need to rewind the file
+        
+        
+        // Allocate the training set
+        qvBlock->training_stats = alloc_conditional_pmf_list(qvBlock->alphabet, qvBlock->columns);
+       
+        
+        // Calculate the statistics of the training set and generate the codebook
+        calculate_statistics(qvBlock);
+        generate_codebooks(qvBlock);
+        
+        qvBlock->qArray = copy_qlis_to_array(qvBlock);
+        
+        // Write the codebook for this block in the output stream
+        write_codebooks(as, qvBlock);
+        
+        
+        printf("%f\n", (float)(clock() - begin)/CLOCKS_PER_SEC);
+
+    }
+    
+    //print_codebook(qvBlock->qlist);
+    
+    // initialize the model of the qv using the codebooks
+    //initialize_stream_model_qv_full(qvBlock->model, qvBlock->qlist);
 }
 
 void quantize_block(qv_block qb, uint32_t read_length){

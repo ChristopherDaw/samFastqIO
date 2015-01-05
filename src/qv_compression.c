@@ -47,48 +47,50 @@ uint32_t decompress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx){
 
 //float counts_1 = 0, counts_2 = 0, counts_3 = 0, counts_4 = 0, counts_5 = 0, counts_6 = 0;
 
-double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, uint8_t **qratio, qv_line line, symbol_t *qArray, stream_model *model, struct well_state_t *well) {
+double QVs_compress2(Arithmetic_stream as, qv_block info) {
     
-    uint32_t s = 0, idx = 0, q_state1 = 0, idx1 = 0;
+    uint32_t s = 0, idx = 0, q_state = 0;
     //double error = 0.0;
-    uint8_t prev_qv = 0, currentQV = 0, quantizer_type, qv1;
-    uint32_t columns = line->columns;
+    uint8_t prev_qv = 0, currentQV = 0, quantizer_type, lossyqv;
+    uint32_t columns = info->columns;
+    
+    struct quantizer_t *q;
+    
+    struct qv_line_t qline = *info->qv_lines;
     
     //stream_model mod;
     
     for (s = 0; s < columns; ++s) {
         
         //begin = clock();
-        //q = choose_quantizer(info->qlist, &info->well, s, prev_qv, &idx, &quantizer_type);
+        q = choose_quantizer(info->qlist, &info->well, s, prev_qv, &idx, &quantizer_type);
         
-        //idx = get_symbol_index(info->qlist->input_alphabets[s], prev_qv);
-        idx = input_alphabets[s]->indexes[prev_qv];
-        assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
-        if (well_1024a_bits(well, 7) >= qratio[s][idx]) {
-            idx = 2*idx+1;
-            quantizer_type = 1;
-        }
-        else{
-            quantizer_type = 0;
-            idx = 2*idx;
-        }
-        //counts_1 += (float)(clock() - begin)/CLOCKS_PER_SEC;
+        currentQV = qline.data[s];
         
-        //begin = clock();
-        currentQV = line->data[s];
+//        idx1 = (s*3362 + quantizer_type*1681 + prev_qv*41 + currentQV) << 1;
         
-        idx1 = (s*3362 + quantizer_type*1681 + prev_qv*41 + currentQV) << 1;
+//        qv1 = qArray[idx1];
         
-        qv1 = qArray[idx1];
+//        q_state1 = qArray[idx1+1];
         
-        q_state1 = qArray[idx1+1];
+        lossyqv = q->q[currentQV];
+        
+        q_state = q->output_alphabet->indexes[lossyqv];
+        
+//        assert(q_state == q_state1);
         
         //mod = model[get_qv_model_index(s, idx)];
         //begin = clock();
         //compress_qv(as, info->model[model_idx], q_state);
-        compress_qv(as, model, get_qv_model_index(s, idx), q_state1);
+//        q_state1 = currentQV;
+//        q_state1 = lossyqv;
+        compress_qv(as, info->model, get_qv_model_index(s, idx), q_state);
         
-        prev_qv = qv1;
+//        compress_qv(as, info->model, get_qv_model_index(0, 0), q_state);
+        
+        prev_qv = lossyqv;
+        
+//        idx1 = currentQV;
     }
 
     
@@ -96,7 +98,7 @@ double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, 
 }
 
 
-double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t *qArray) {
+double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray) {
     
     
     uint32_t s = 0, idx = 0, q_state1 = 0, idx1 = 0;
@@ -104,7 +106,7 @@ double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t
     uint8_t prev_qv = 0, currentQV = 0, quantizer_type, qv1;
     uint32_t columns = info->columns;
     
-    struct qv_line_t qline = info->qv_lines[line];
+    struct qv_line_t qline = *info->qv_lines;
     struct alphabet_t **inAlpha = info->qlist->input_alphabets;
     uint8_t **ratios = info->qlist->qratio;
         
@@ -151,7 +153,7 @@ double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t
         
 
         //assert(q_state == q_state1);
-        //assert(qv1 == qv);
+        //assert(qv1 == currentQV);
         
         //model_idx = 0;
         
@@ -170,25 +172,48 @@ double QVs_compress(Arithmetic_stream as, qv_block info, uint32_t line, symbol_t
     return 0;
 }
 
-double QVs_compress3(Arithmetic_stream as, stream_model* models, qv_line line) {
+double QVs_compress_lossless(Arithmetic_stream as, stream_model* models, qv_line line) {
     
     uint32_t s = 0;
     uint8_t q_state = 0, prev_state = 0;
     uint32_t columns = line->columns;
     
-//    stream_model mod;
-    
     for (s = 0; s < columns; ++s) {
         
         q_state = line->data[s];
-        
-//        mod = models[get_qv_model_index(s, prev_state)];
-        //compress_qv(as, info->model[model_idx], q_state);
         compress_qv(as, models, get_qv_model_index(s, prev_state), q_state);
         prev_state = q_state;
     }
     
     return 0;
+}
+
+double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv) {
+    
+    uint8_t prev_qv = 0;
+    uint32_t columns = info->columns;
+    
+    int s = 0;
+    char *line = (char *) _alloca(columns+1);
+    line[columns] = '\n';
+    
+    for (s = 0; s < columns; ++s) {
+        line[s] = decompress_qv(as, info->model, get_qv_model_index(s, prev_qv));
+        prev_qv = line[s];
+        line[s] += 33;
+    }
+    
+    /*if (inv) {
+     for (s = columns - 1; s >= 0; s--) {
+     fputc(line[s],fout);
+     }
+     fputc('\n', fout);
+     return 1;
+     }
+     else fwrite(line, 1, columns +1, fout);
+     */
+    fwrite(line, 1, columns +1, fout);
+    return 1;
 }
 
 double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv) {

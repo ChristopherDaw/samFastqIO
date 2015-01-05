@@ -40,7 +40,7 @@ void usage(const char *name) {
 
 int main(int argc, const char * argv[]) {
     
-    uint32_t mode, i = 0, file_idx = 0, rc = 0;
+    uint32_t mode, i = 0, file_idx = 0, rc = 0, lossiness = LOSSY;
     
     struct qv_options_t opts;
     
@@ -105,14 +105,22 @@ int main(int argc, const char * argv[]) {
             // COMPRESSION
             case 'c':
                 mode = COMPRESSION;
-                opts.ratio = atof(argv[i+1]);
+                if ( (opts.ratio = atof(argv[i+1])) == 1) {
+                    lossiness = LOSSLESS;
+                }
+                else
+                    lossiness = LOSSY;
                 opts.mode = MODE_RATIO;
                 i += 2;
                 break;
             // UPLOAD
             case 'u':
                 mode = UPLOAD;
-                opts.ratio = atof(argv[i+1]);
+                if ( (opts.ratio = atof(argv[i+1])) == 1) {
+                    lossiness = LOSSLESS;
+                }
+                else
+                    lossiness = LOSSY;
                 opts.mode = MODE_RATIO;
                 i += 2;
                 break;
@@ -213,6 +221,7 @@ int main(int argc, const char * argv[]) {
     time(&begin_main);
     
     comp_info.mode = mode;
+    comp_info.lossiness = lossiness;
     
     switch (mode) {
         case COMPRESSION:

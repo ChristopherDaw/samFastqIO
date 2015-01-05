@@ -49,6 +49,7 @@ rname_block alloc_rname_block(){
     uint32_t i = 0;
     
     rname_block rtn = (rname_block) calloc(1, sizeof(struct rname_block_t));
+    
     rtn->block_length = MAX_LINES_PER_BLOCK;
     
     rtn->rnames = (char**) calloc(rtn->block_length, sizeof(char*));
@@ -133,7 +134,7 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     
     qv_info = (qv_block) calloc(1, sizeof(struct qv_block_t));
     
-    qv_info->block_length = MAX_LINES_PER_BLOCK;
+    qv_info->block_length = opts->training_size;
     
     qv_info->columns = read_length;
     
@@ -161,8 +162,6 @@ qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length){
     qv_info->opts = opts;
     
     qv_info->model = alloc_stream_model_qv(read_length, QV_ALPHABET_SIZE + 1, rescale);
-    
-    
     
     return qv_info;
     
@@ -270,6 +269,8 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     // Must start at zero
     sb->QVs->well.n = 0;
     
+    sb->QVs->fs = sb->fs;
+    
     //IDs
     sb->IDs = alloc_id_block();
     
@@ -279,6 +280,7 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     return sb;
     
 }
+
 
 uint32_t load_sam_block(sam_block sb){
     
@@ -404,4 +406,149 @@ uint32_t load_sam_block(sam_block sb){
     sb->QVs->block_length = i;
     
     return i;
+}
+
+uint32_t load_sam_line(sam_block sb){
+    
+    int32_t j = 0;
+    read_line rline = NULL;
+    qv_line qvline = NULL;
+    
+    
+    char buffer[1024];
+    char *ptr;
+    char *ID_line;
+    char *rname_line;
+        
+    rline = sb->reads->lines;
+    qvline = sb->QVs->qv_lines;
+    ID_line = *sb->IDs->IDs;
+    rname_line = *sb->rnames->rnames;
+        
+    rline->read_length = sb->read_length;
+    qvline->columns = sb->read_length;
+    
+    // Read compulsory fields
+    if (fgets(buffer, 1024, sb->fs)) {
+        // ID
+        ptr = strtok(buffer, "\t");
+        strcpy(ID_line, ptr);
+        // FLAG
+        ptr = strtok(NULL, "\t");
+        rline->invFlag = atoi(ptr);
+        // RNAME
+        ptr = strtok(NULL, "\t");
+        strcpy(rname_line, ptr);
+        // POS
+        ptr = strtok(NULL, "\t");
+            rline->pos = atoi(ptr);
+            // MAPQ
+            ptr = strtok(NULL, "\t");
+            // CIGAR
+            ptr = strtok(NULL, "\t");
+            strcpy(rline->cigar, ptr);
+            // RNEXT
+            ptr = strtok(NULL, "\t");
+            // PNEXT
+            ptr = strtok(NULL, "\t");
+            // TLEN
+            ptr = strtok(NULL, "\t");
+            // SEQ
+            ptr = strtok(NULL, "\t");
+            strcpy(rline->read, ptr);
+            // QUAL
+            ptr = strtok(NULL, "\t");
+            // Read the QVs and translate them to a 0-based scale
+            // Check if the read is inversed
+            if (rline->invFlag & 16) { // The read is inverted
+                for (j = sb->read_length - 1; j >= 0; j--) {
+                    qvline->data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+            else{ // The read is not inversed
+                for (j = 0; j < sb->read_length; j++) {
+                    qvline->data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+        // Read the AUX fields until end of line, and store the MD field
+        while( NULL != (ptr = strtok(NULL, "\t")) ){
+            // Do something
+            if (*ptr == 'M' && *(ptr+1) == 'D'){
+                // skip MD:Z:
+                ptr += 5;
+                strcpy(rline->edits, ptr);
+                break;
+            }
+        }
+        
+        return 0;
+    }
+    else
+        return 1;
+}
+
+/**
+ *
+ *
+ */
+uint32_t load_qv_training_block(qv_block QV){
+    
+    qv_line qvline = QV->qv_lines;
+    
+    int32_t j = 0, i = 0;
+    
+    long int oset = ftell(QV->fs);
+    
+    
+    char buffer[1024];
+    char *ptr;
+    
+    uint32_t invFlag;
+    
+    for (i = 0; i < QV->block_length; i++) {
+        
+        // Read compulsory fields
+        if (fgets(buffer, 1024, QV->fs)) {
+            // ID
+            ptr = strtok(buffer, "\t");
+            // FLAG
+            ptr = strtok(NULL, "\t");
+            invFlag = atoi(ptr);
+            // RNAME
+            ptr = strtok(NULL, "\t");
+            // POS
+            ptr = strtok(NULL, "\t");
+            // MAPQ
+            ptr = strtok(NULL, "\t");
+            // CIGAR
+            ptr = strtok(NULL, "\t");
+            // RNEXT
+            ptr = strtok(NULL, "\t");
+            // PNEXT
+            ptr = strtok(NULL, "\t");
+            // TLEN
+            ptr = strtok(NULL, "\t");
+            // SEQ
+            ptr = strtok(NULL, "\t");
+            // QUAL
+            ptr = strtok(NULL, "\t");
+            // Read the QVs and translate them to a 0-based scale
+            // Check if the read is inversed
+            if (invFlag & 16) { // The read is inverted
+                for (j = QV->columns - 1; j >= 0; j--) {
+                    qvline[i].data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+            else{ // The read is not inversed
+                for (j = 0; j < QV->columns; j++) {
+                    qvline[i].data[j] = (*ptr) - 33, ptr++;
+                }
+            }
+        }
+        else
+            return 1;
+    }
+    
+    fseek(QV->fs, oset, SEEK_SET);
+    return 0;
 }

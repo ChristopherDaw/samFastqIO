@@ -35,7 +35,7 @@
 #define MAX_NUMBER_TOKENS_ID 128
 
 // This limits us to chunks that aren't too big to fit into a modest amount of memory at a time
-#define MAX_LINES_PER_BLOCK			1000000
+#define MAX_LINES_PER_BLOCK			1
 #define MAX_READS_PER_LINE			1022
 #define READ_LINEBUF_LENGTH			(MAX_READS_PER_LINE+2)
 
@@ -58,6 +58,7 @@ struct compressor_info_t{
     FILE *fref;
     uint8_t mode;
     struct qv_options_t *qv_opts;
+    uint8_t lossiness;
 };
 
 typedef struct rname_models_t{
@@ -163,6 +164,8 @@ typedef struct qv_block_t {
     struct well_state_t well;
     stream_model *model;
     stream_model *codebook_model;
+    FILE *fs;
+    symbol_t *qArray;
 }*qv_block;
 
 typedef struct simplified_qv_block_t {
@@ -238,7 +241,7 @@ void initialize_qv_model(Arithmetic_stream as, qv_block qvBlock, uint8_t decompr
 void initialize_stream_model_qv_full(stream_model *s, struct cond_quantizer_list_t *q_list);
 void reset_QV_block(qv_block qvb, uint8_t direction);
 
-double QVs_compress2(Arithmetic_stream as, struct alphabet_t **input_alphabets, uint8_t **qratio, qv_line line, symbol_t *qArray, stream_model *model, struct well_state_t *well);
+double QVs_compress2(Arithmetic_stream as, qv_block info);
 double QVs_compress3(Arithmetic_stream as, stream_model* models, qv_line line);
 void quantize_line(qv_block qb, qv_line qline, uint32_t read_length);
 id_models alloc_id_models_t();
@@ -256,10 +259,15 @@ int decompress_rname(Arithmetic_stream as, rname_models models, char *rname);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);
+int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness);
 void* compress(void *thread_info);
 void* decompress(void *thread_info);
 
 uint32_t compute_num_digits(uint32_t x);
+
+uint32_t load_qv_line(qv_block QV);
+uint32_t load_sam_line(sam_block sb);
+uint32_t load_qv_training_block(qv_block QV);
 
 
 #endif

@@ -32,6 +32,9 @@
 #define DOWNLOAD 3
 #define STREAMING 4
 
+#define LOSSLESS 8
+#define LOSSY 9
+
 #define ARITHMETIC_WORD_LENGTH 24
 
 #ifndef IDOFILE_PATH_ROOT

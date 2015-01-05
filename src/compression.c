@@ -12,6 +12,92 @@
 #include "sam_block.h"
 #include "read_compression.h"
 
+int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  {
+    
+    unsigned int i = 0;
+    uint8_t chr_change;
+    
+    // Load the data from the file
+    if(load_sam_line(samBlock))
+        return 0;
+        
+    // Compress sam line
+    
+    chr_change = compress_rname(as, samBlock->rnames->models, samBlock->rnames->rnames[i]);
+        
+    if (chr_change == 1){
+        // Store Ref sequence in memory
+        store_reference_in_memory(samBlock->fref);
+        // Clean snpInRef vector and reset cumsumP
+        cumsumP = 0;
+        memset(snpInRef, 0, MAX_BP_CHR);
+    }
+    
+    compress_id(as, samBlock->IDs->models, *samBlock->IDs->IDs);
+    
+    compress_read(as, samBlock->reads->models, samBlock->reads->lines, chr_change);
+    
+    if (lossiness == LOSSY) {
+        //quantize_line(samBlock->QVs, &(samBlock->QVs->qv_lines[i]), samBlock->read_length);
+    
+        QVs_compress(as, samBlock->QVs, samBlock->QVs->qArray);
+        //QVs_compress2(as, samBlock->QVs);
+            //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
+    }
+    else
+        QVs_compress_lossless(as, samBlock->QVs->model, samBlock->QVs->qv_lines);
+    
+    // Check if we are in the last block
+    //if (i < MAX_LINES_PER_BLOCK){
+      //  compress_rname(as, samBlock->rnames->models, "\n");
+      //  return 0;
+    //}
+    
+    return 1;
+}
+
+int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness){
+    
+    int32_t chr_change = 0;
+    
+    uint32_t decompression_flag = 0;
+    
+    //printf("Decompressing the block...\n");
+    // Loop over the lines of the sam block
+        
+        chr_change = decompress_rname(as, samBlock->rnames->models, NULL);
+        
+        if (chr_change == -1)
+            return 0;
+        
+        if (chr_change == 1){
+            
+            //printf("Chromosome %d decompressed.\n", ++chrCtr);
+            
+            // Store Ref sequence in memory
+            store_reference_in_memory(samBlock->fref);
+            
+            // Clean snpInRef vector and reset cumsumP
+            cumsumP = 0;
+            memset(snpInRef, 0, MAX_BP_CHR);
+        }
+        
+        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+        
+        decompression_flag = decompress_read(as,samBlock, chr_change);
+        
+        if (lossiness == LOSSY) {
+            
+            QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
+        }
+        else
+            QVs_decompress_lossless(as, samBlock->QVs, samBlock->fs, decompression_flag);
+    
+    return 1;
+}
+
+
+
 int compress_block(Arithmetic_stream as, sam_block samBlock){
     
     unsigned int i = 0;
@@ -69,7 +155,7 @@ int compress_block(Arithmetic_stream as, sam_block samBlock){
         //counts_quant += (float)(clock() - begin)/CLOCKS_PER_SEC;
         begin = clock();
         //QVs_compress(as, samBlock->QVs, &(samBlock->QVs->qv_lines[i]), qArray);
-        QVs_compress(as, samBlock->QVs, i, qArray);
+//        QVs_compress(as, samBlock->QVs, i, qArray);
         //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
         //QVs_compress3(as, samBlock->QVs->model, &(samBlock->QVs->qv_lines[i]));
         counts_qv += (float)(clock() - begin)/CLOCKS_PER_SEC;
@@ -147,6 +233,8 @@ void* compress(void *thread_info){
     time_t begin;
     time_t end;
     
+    uint32_t lineCtr = 0;
+    
     //printf("Compressing...\n");
     time(&begin);
     
@@ -160,13 +248,27 @@ void* compress(void *thread_info){
     // Allocs the different blocks and all the models for the Arithmetic
     sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, info.mode);
     
-    // Load and compress the blocks
-    while(compress_block(as, samBlock)){
-        reset_QV_block(samBlock->QVs, info.mode);
-        n += samBlock->block_length;
-    }
     
-    n += samBlock->block_length;
+    
+    if (info.lossiness == LOSSY) {
+        compress_int(as, samBlock->codebook_model, LOSSY);
+        initialize_qv_model(as, samBlock->QVs, COMPRESSION);
+    }
+    else
+        compress_int(as, samBlock->codebook_model, LOSSLESS);
+    
+    while (compress_line(as, samBlock, info.lossiness)) {
+        ++lineCtr;
+    }
+    // Load and compress the blocks
+    //while(compress_block(as, samBlock)){
+    //    reset_QV_block(samBlock->QVs, info.mode);
+    
+    //   n += samBlock->block_length;
+    //}
+    
+    // Check if we are in the last block
+    compress_rname(as, samBlock->rnames->models, "\n");
     
     //end the compression
     compress_file_size = encoder_last_step(as);
@@ -197,12 +299,19 @@ void* decompress(void *thread_info){
     
     sam_block samBlock = alloc_sam_block_t(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
     
+    info->lossiness = decompress_int(as, samBlock->codebook_model);
+    
     // Start the decompression
+    // initialize the QV model
+    if (info->lossiness == LOSSY) {
+        initialize_qv_model(as, samBlock->QVs, DECOMPRESSION);
+    }
     
     // Decompress the blocks
-    while(decompress_block(as, samBlock)){
-        reset_QV_block(samBlock->QVs, DECOMPRESSION);
-        n += samBlock->block_length;
+    while(decompress_line(as, samBlock, info->lossiness)){
+        //reset_QV_block(samBlock->QVs, DECOMPRESSION);
+        //n += samBlock->block_length;
+        ;
     }
     
     n += samBlock->block_length;
@@ -212,7 +321,7 @@ void* decompress(void *thread_info){
     
     ticks = clock() - begin;
     
-    //printf("Decompression took %f\n", ((float)ticks)/CLOCKS_PER_SEC);
+    printf("Decompression took %f\n", ((float)ticks)/CLOCKS_PER_SEC);
     
     //printf("%f Million reads decompressed.\n", (double)n/1000000.0);
     
