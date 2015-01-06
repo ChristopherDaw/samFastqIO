@@ -22,7 +22,7 @@
  * Allocates a file stream wrapper for the arithmetic encoder, with a given
  * already opened file handle
  */
-struct io_stream_t *alloc_io_stream(uint8_t mode) {
+struct io_stream_t *alloc_io_stream(uint8_t mode, FILE *fp) {
     
     struct io_stream_t *rtn = (struct io_stream_t *) calloc(1, sizeof(struct io_stream_t));
     
@@ -32,22 +32,28 @@ struct io_stream_t *alloc_io_stream(uint8_t mode) {
     
     switch (mode) {
         case COMPRESSION:
-            clean_compressed_dir(rtn);
-            rtn->fileCtr = 0;
-            //open_new_iofile(rtn);
+            rtn->fp = fp;
             break;
         case DECOMPRESSION:
-            open_new_iofile(rtn);
+            rtn->fp = fp;
+            fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, rtn->fp);
             break;
         case UPLOAD:
             clean_compressed_dir(rtn);
             rtn->fileCtr = 0;
-            //open_new_iofile(rtn);
             break;
         case DOWNLOAD:
             clean_compressed_dir(rtn);
             rtn->fileCtr = 0;
-            open_new_iofile(rtn);
+            sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
+            rtn->fileCtr++;
+            
+            while (file_available == 0) ;
+            rtn->fp = fopen(rtn->filePath, "r");
+            fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, rtn->fp);
+            fclose(rtn->fp);
+            remove(rtn->filePath);
+            file_available--;
             break;
         default:
             break;
@@ -213,7 +219,7 @@ void stream_read_line(struct io_stream_t *is, char* line, uint32_t len){
  *
  ********************************/
 
-Arithmetic_stream alloc_arithmetic_stream(uint8_t direction) {
+Arithmetic_stream alloc_arithmetic_stream(uint8_t direction, FILE *fp) {
     
     Arithmetic_stream a;
     
@@ -226,7 +232,7 @@ Arithmetic_stream alloc_arithmetic_stream(uint8_t direction) {
     a->l = 0;
     a->u = (1 << m) - 1;
     
-    a->ios = alloc_io_stream(direction);
+    a->ios = alloc_io_stream(direction, fp);
     
     if (direction == DECOMPRESSION || direction == DOWNLOAD) {
         //Read the tag
@@ -266,7 +272,7 @@ void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t
     a->u = a->l + (uint32_t)((range * cumCountX) / n) - 1;
     a->l = a->l + (uint32_t)((range * cumCountX_1) / n);
     
-    assert(a->l <= a->u);
+//    assert(a->l <= a->u);
     
     // Check the rescaling conditions
     msbL = a->l >> msb_shift;

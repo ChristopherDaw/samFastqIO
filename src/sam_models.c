@@ -805,7 +805,7 @@ symbol_t * copy_qlis_to_array(qv_block qb){
                 prev_qv = qb->qlist->input_alphabets[col]->symbols[idx_prevQV];
                 newidx = qb->qlist->input_alphabets[col]->indexes[prev_qv];
                 
-                assert(newidx == idx_prevQV);
+//                assert(newidx == idx_prevQV);
                 // Go through the possible current values
                 for (currentQV = 0; currentQV < qv_alphabet ; currentQV++) {
                     // New quantized QV

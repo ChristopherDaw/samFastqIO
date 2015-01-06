@@ -118,7 +118,7 @@ double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray) {
         //idx = get_symbol_index(info->qlist->input_alphabets[s], prev_qv);
         //idx = info->qlist->input_alphabets[s]->indexes[prev_qv];
         idx = inAlpha[s]->indexes[prev_qv];
-        assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
+//        assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
         //if (well_1024a_bits(&info->well, 7) >= info->qlist->qratio[s][idx]) {
         if (well_1024a_bits(&info->well, 7) >= ratios[s][idx]) {
             idx = 2*idx+1;
@@ -144,9 +144,9 @@ double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray) {
         
         idx1 = (s*3362 + quantizer_type*1681 + prev_qv*41 + currentQV) << 1;
         
-        qv1 = qArray[idx1];
+        qv1 = qArray[idx1++];
         
-        q_state1 = qArray[idx1+1];
+        q_state1 = qArray[idx1];
         
         //assert(idx == idx1);
         

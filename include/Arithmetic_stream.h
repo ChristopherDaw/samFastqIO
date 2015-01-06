@@ -82,7 +82,7 @@ typedef struct Arithmetic_stream_t {
 
 
 // Function Prototypes
-struct io_stream_t *alloc_io_stream(uint8_t in);
+struct io_stream_t *alloc_io_stream(uint8_t mode, FILE *fp);
 void free_os_stream(struct io_stream_t *os);
 uint8_t stream_read_bit(struct io_stream_t *is);
 uint32_t stream_read_bits(struct io_stream_t *is, uint8_t len);
@@ -95,7 +95,7 @@ void stream_write_bytes(struct io_stream_t *is, char* ch, uint32_t len);
 void stream_read_bytes(struct io_stream_t *is, char* ch, uint32_t len);
 void stream_read_line(struct io_stream_t *is, char* line, uint32_t len);
 
-Arithmetic_stream alloc_arithmetic_stream(uint8_t direction);
+Arithmetic_stream alloc_arithmetic_stream(uint8_t direction, FILE *fp);
 void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t cumCountX, uint32_t n);
 uint64_t encoder_last_step(Arithmetic_stream a);
 void arithmetic_decoder_step(Arithmetic_stream a, uint32_t cumCountX,  uint32_t cumCountX_1, uint32_t n);

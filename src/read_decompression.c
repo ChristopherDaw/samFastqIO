@@ -392,7 +392,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     prev_pos = 0;
     for (i = 0; i < numSnps; i++){
         
-        assert(currentPos < models->read_length);
+//        assert(currentPos < models->read_length);
         
         // compute delta to next snp
         delta = compute_delta_to_first_snp(prev_pos, models->read_length);

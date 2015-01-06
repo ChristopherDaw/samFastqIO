@@ -343,7 +343,7 @@ void* upload(void* remote_info){
     
     my_ssh_session = open_ssh_session(hostname, username);
     
-    printf("ssh session opened with %s@%s\n", username, hostname);
+    printf("Uploading file to %s@%s:%s...\n", username, hostname, directory);
     scp_write(my_ssh_session, directory);
     
     ssh_disconnect(my_ssh_session);
@@ -362,7 +362,7 @@ void* download(void* remote_info){
     time(&begin);
     my_ssh_session = open_ssh_session(info->host_name, info->username);
     
-    printf("ssh session opened with %s@%s\n", info->host_name, info->username);
+    printf("Downloading file from %s@%s...\n", info->host_name, info->username);
     scp_read(my_ssh_session, info->filename);
     
     ssh_disconnect(my_ssh_session);

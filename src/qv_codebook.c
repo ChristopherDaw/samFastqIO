@@ -290,7 +290,7 @@ void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quant
  */
 struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx, uint8_t *type) {
 	uint32_t idx = get_symbol_index(list->input_alphabets[column], prev);
-	assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
+//	assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
 	if (well_1024a_bits(well, 7) >= list->qratio[column][idx]) {
         *q_idx = 2*idx+1;
         *type = 1;

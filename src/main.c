@@ -227,6 +227,7 @@ int main(int argc, const char * argv[]) {
         case COMPRESSION:
             comp_info.fsam = fopen( input_name, "r");
             comp_info.fref = fopen ( ref_name , "r" );
+            comp_info.fcomp = fopen( output_name, "w");
             if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
                 fputs ("File error while opening ref and sam files\n",stderr); exit (1);
             }
@@ -239,6 +240,7 @@ int main(int argc, const char * argv[]) {
         case DECOMPRESSION:
             comp_info.fsam = fopen(output_name, "w");
             comp_info.fref = fopen ( ref_name , "r" );
+            comp_info.fcomp = fopen(input_name, "r");
             if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
                 fputs ("File error while opening ref and sam files\n",stderr); exit (1);
             }
@@ -307,8 +309,6 @@ int main(int argc, const char * argv[]) {
     
     
     printf("Total time elapsed: %ld seconds.\n",(end_main - begin_main));
-    
-    pthread_exit(NULL);
     
     return 1;
     

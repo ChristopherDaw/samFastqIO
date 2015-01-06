@@ -56,6 +56,7 @@
 struct compressor_info_t{
     FILE *fsam;
     FILE *fref;
+    FILE *fcomp;
     uint8_t mode;
     struct qv_options_t *qv_opts;
     uint8_t lossiness;
@@ -220,7 +221,7 @@ rname_models alloc_rname_models_t();
 stream_model *alloc_stream_model_qv(uint32_t read_length, uint32_t input_alphabet_size, uint32_t rescale);
 
 
-sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression);
+sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t decompression);
 read_block alloc_read_block_t(uint32_t read_length);
 qv_block alloc_qv_block_t(struct qv_options_t *opts, uint32_t read_length);
 uint32_t get_read_length(FILE *f);

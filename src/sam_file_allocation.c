@@ -97,21 +97,15 @@ id_block alloc_id_block(){
  */
 read_block alloc_read_block_t(uint32_t read_length){
     
-    uint32_t i = 0;
-    
     read_block rf = (read_block) calloc(1, sizeof(struct read_block_t));
     
     rf->block_length = MAX_LINES_PER_BLOCK;
     
     rf->lines = (read_line) calloc(rf->block_length, sizeof(struct read_line_t));
-    
-    // allocate the memory for each of the lines
-    for (i = 0; i < rf->block_length; i++) {
         
-        rf->lines[i].cigar = (char*) calloc(1, 2*read_length);
-        rf->lines[i].edits = (char*) calloc(1, 2*read_length);
-        rf->lines[i].read = (char*) calloc(1, read_length + 3);
-    }
+    rf->lines->cigar = (char*) calloc(1, 2*read_length);
+    rf->lines->edits = (char*) calloc(1, 2*read_length);
+    rf->lines->read = (char*) calloc(1, read_length + 3);
     
     // Allocate (and initialize) the models for the reads
     rf->models = alloc_read_models_t(read_length);
@@ -207,7 +201,7 @@ simplified_qv_block alloc_simplified_qv_block_t(struct qv_options_t *opts, uint3
 }
 
 
-sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t mode){
+sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct qv_options_t *qv_opts, uint8_t mode){
     
     uint32_t i = 0;
     
@@ -220,8 +214,6 @@ sam_block alloc_sam_block_t(Arithmetic_stream as, FILE * fin, FILE *fref, struct
     // initialize the codebook_model
     uint32_t rescale = 1 << 20;
     sb->codebook_model = initialize_stream_model_codebook(rescale);
-    
-    sb->block_length = MAX_LINES_PER_BLOCK;
     
     // Get the Read Length
     if (mode == DECOMPRESSION || mode == DOWNLOAD) {

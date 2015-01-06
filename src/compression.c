@@ -229,26 +229,24 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
 
 void* compress(void *thread_info){
     
-    uint64_t compress_file_size = 0, n = 0;
-    time_t begin;
-    time_t end;
+    uint64_t compress_file_size = 0;
+    clock_t begin;
+    clock_t ticks;
     
     uint32_t lineCtr = 0;
     
-    //printf("Compressing...\n");
-    time(&begin);
+    printf("Compressing...\n");
+    begin = clock();
     
     struct compressor_info_t info = *((struct compressor_info_t *)thread_info);
     
     struct qv_options_t opts = *(info.qv_opts);
     
     // Allocs the Arithmetic and the I/O stream
-    Arithmetic_stream as = alloc_arithmetic_stream(info.mode);
+    Arithmetic_stream as = alloc_arithmetic_stream(info.mode, info.fcomp);
     
     // Allocs the different blocks and all the models for the Arithmetic
-    sam_block samBlock = alloc_sam_block_t(as, info.fsam, info.fref, &opts, info.mode);
-    
-    
+    sam_block samBlock = alloc_sam_models(as, info.fsam, info.fref, &opts, info.mode);
     
     if (info.lossiness == LOSSY) {
         compress_int(as, samBlock->codebook_model, LOSSY);
@@ -279,11 +277,12 @@ void* compress(void *thread_info){
     
     fclose(info.fsam);
     
-    time(&end);
+    ticks = clock() - begin;
     
-    printf("Compression time elapsed: %ld seconds\n", end-begin);
+    printf("Compression took %f\n", ((float)ticks)/CLOCKS_PER_SEC);
     
-    pthread_exit(NULL);
+    //pthread_exit(NULL);
+    return NULL;
 }
 
 
@@ -295,9 +294,9 @@ void* decompress(void *thread_info){
     
     struct compressor_info_t *info = (struct compressor_info_t *)thread_info;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(DECOMPRESSION);
+    Arithmetic_stream as = alloc_arithmetic_stream(DECOMPRESSION, info->fcomp);
     
-    sam_block samBlock = alloc_sam_block_t(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
+    sam_block samBlock = alloc_sam_models(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
     
     info->lossiness = decompress_int(as, samBlock->codebook_model);
     
