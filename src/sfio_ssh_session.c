@@ -343,7 +343,7 @@ void* upload(void* remote_info){
     
     my_ssh_session = open_ssh_session(hostname, username);
     
-    printf("Uploading file to %s@%s:%s...\n", username, hostname, directory);
+    printf("Uploading file to %s@%s:%s/...\n", username, hostname, directory);
     scp_write(my_ssh_session, directory);
     
     ssh_disconnect(my_ssh_session);

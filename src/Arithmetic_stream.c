@@ -55,6 +55,18 @@ struct io_stream_t *alloc_io_stream(uint8_t mode, FILE *fp) {
             remove(rtn->filePath);
             file_available--;
             break;
+        case REMOTE_DECOMPRESSION:
+            rtn->fileCtr = 0;
+            sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
+            rtn->fileCtr++;
+            
+            while ( access( rtn->filePath, F_OK ) == -1 ) ;
+            rtn->fp = fopen(rtn->filePath, "r");
+            fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, rtn->fp);
+            fclose(rtn->fp);
+            remove(rtn->filePath);
+            file_available--;
+            break;
         default:
             break;
     }

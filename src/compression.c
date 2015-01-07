@@ -294,7 +294,7 @@ void* decompress(void *thread_info){
     
     struct compressor_info_t *info = (struct compressor_info_t *)thread_info;
     
-    Arithmetic_stream as = alloc_arithmetic_stream(DECOMPRESSION, info->fcomp);
+    Arithmetic_stream as = alloc_arithmetic_stream(info->mode, info->fcomp);
     
     sam_block samBlock = alloc_sam_models(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
     

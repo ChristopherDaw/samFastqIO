@@ -31,6 +31,7 @@
 #define UPLOAD 2
 #define DOWNLOAD 3
 #define STREAMING 4
+#define REMOTE_DECOMPRESSION 5
 
 #define LOSSLESS 8
 #define LOSSY 9

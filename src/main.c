@@ -129,6 +129,11 @@ int main(int argc, const char * argv[]) {
                 mode = DECOMPRESSION;
                 i += 1;
                 break;
+            // REMOTE_DECOMPRESSION
+            case 'r':
+                mode = REMOTE_DECOMPRESSION;
+                i += 1;
+                break;
             // DOWNLOAD
             case 'd':
                 mode = DOWNLOAD;
@@ -241,6 +246,19 @@ int main(int argc, const char * argv[]) {
             comp_info.fsam = fopen(output_name, "w");
             comp_info.fref = fopen ( ref_name , "r" );
             comp_info.fcomp = fopen(input_name, "r");
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            decompress((void *)&comp_info);
+            time(&end_main);
+            break;
+            
+        case REMOTE_DECOMPRESSION:
+            comp_info.fsam = fopen(output_name, "w");
+            comp_info.fref = fopen ( ref_name , "r" );
+            comp_info.fcomp = NULL;
             if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
                 fputs ("File error while opening ref and sam files\n",stderr); exit (1);
             }

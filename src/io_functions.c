@@ -124,6 +124,22 @@ void stream_write_buffer(struct io_stream_t *os) {
             os->bufPos = 0;
             
             break;
+            
+        case REMOTE_DECOMPRESSION:
+            sprintf(os->filePath, IDOFILE_PATH_ROOT "%010d", os->fileCtr);
+            os->fileCtr++;
+            
+            while (file_available == 0) ;
+            os->fp = fopen(os->filePath, "r");
+            fread(os->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, os->fp);
+            fclose(os->fp);
+            remove(os->filePath);
+            file_available--;
+            
+            os->bufPos = 0;
+            
+            break;
+
         default:
             break;
     }
