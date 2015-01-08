@@ -771,7 +771,7 @@ void quantize_block(qv_block qb, uint32_t read_length){
 
 void quantize_line(qv_block qb, qv_line qline, uint32_t read_length){
     
-    uint32_t i, j, idx = 0;
+    uint32_t i = 0, j, idx = 0;
     
     uint8_t qv, prev_qv = 0, quantizer_type, quantQV;
     

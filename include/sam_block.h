@@ -19,6 +19,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <pthread.h>
+
 // Interface for libssh
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>

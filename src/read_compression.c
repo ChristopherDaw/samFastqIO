@@ -610,7 +610,7 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
         
         // if there are deletions after pos, we need to add those positions that come after the deletions
         while (ch == '^'){
-            while (isnumber(*(edits+ctr)) == 0) {
+            while (isdigit(*(edits+ctr)) == 0) {
                 ctr++;
             }
             tempPos += atoi(edits + ctr);
@@ -645,7 +645,7 @@ int add_snps_to_array(char* edits, snp* SNPs, unsigned int *numSnps, unsigned in
         ch = *edits++, prevEditPtr++;
         
         while (ch == '^'){
-            while (isnumber(*edits) == 0)
+            while (isdigit(*edits) == 0)
                 edits++, prevEditPtr++;
             pos += atoi(edits);
             
