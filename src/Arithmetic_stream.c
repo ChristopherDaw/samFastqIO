@@ -30,6 +30,10 @@ struct io_stream_t *alloc_io_stream(uint8_t mode, FILE *fp) {
     
     rtn->buf = (uint8_t *) calloc(IO_STREAM_BUF_LEN + 1, sizeof(uint8_t));
     
+    char lockname[256];
+    
+    int rc;
+    
     switch (mode) {
         case COMPRESSION:
             rtn->fp = fp;
@@ -60,13 +64,20 @@ struct io_stream_t *alloc_io_stream(uint8_t mode, FILE *fp) {
             sprintf(rtn->filePath, IDOFILE_PATH_ROOT "%010d", rtn->fileCtr);
             rtn->fileCtr++;
             
-            while ( access( rtn->filePath, F_OK ) == -1 ) ;
+            //define the "ready" file
+            strcpy(lockname, rtn->filePath);
+            strcat(lockname, "_ready");
+            //
+            
+            while ( (rc = access( lockname, F_OK )) == -1) ;
+            remove(lockname);
+            
             rtn->fp = fopen(rtn->filePath, "r");
             fread(rtn->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, rtn->fp);
             fclose(rtn->fp);
             remove(rtn->filePath);
-            file_available--;
             break;
+
         default:
             break;
     }
@@ -246,7 +257,7 @@ Arithmetic_stream alloc_arithmetic_stream(uint8_t direction, FILE *fp) {
     
     a->ios = alloc_io_stream(direction, fp);
     
-    if (direction == DECOMPRESSION || direction == DOWNLOAD) {
+    if (direction == DECOMPRESSION || direction == DOWNLOAD || direction == REMOTE_DECOMPRESSION) {
         //Read the tag
         a->t = stream_read_bits(a->ios, ARITHMETIC_WORD_LENGTH);
     }

@@ -18,14 +18,22 @@
 
 int verify_knownhost(ssh_session session)
 {
-    int state, hlen;
+    int state, rc;
     unsigned char *hash = NULL;
     char *hexa;
     char buf[10];
+    size_t hlen;
+    ssh_key srv_pubkey;
+    
     state = ssh_is_server_known(session);
-    hlen = ssh_get_pubkey_hash(session, &hash);
-    if (hlen < 0)
+    if (ssh_get_publickey(session, &srv_pubkey) < 0) {
         return -1;
+    }
+    rc = ssh_get_publickey_hash(srv_pubkey, SSH_PUBLICKEY_HASH_SHA1, &hash, &hlen);
+    ssh_key_free(srv_pubkey);
+    if (rc < 0) {
+        return -1;
+    }
     switch (state)
     {
         case SSH_SERVER_KNOWN_OK:
@@ -218,6 +226,7 @@ int scp_write(ssh_session session, char* directory)
     uint64_t length = 0;
     char filename[1024];
     char filepath[1024];
+    char readyname[256];
     char *pathEnd, *nameEnd;
     char buffer[IO_STREAM_BUF_LEN];
     FILE *fp;
@@ -264,6 +273,28 @@ int scp_write(ssh_session session, char* directory)
             return rc;
         }
         printf("File %s uploaded\n", filename);
+        
+        // Upload the "ready" file
+        strcpy(readyname, filename);
+        strcat(readyname, "_ready");
+        rc = ssh_scp_push_file(scp, readyname, 1, S_IRUSR |  S_IWUSR);
+        if (rc != SSH_OK)
+        {
+            fprintf(stderr, "Can't open remote file: %s\n",
+                    ssh_get_error(session));
+            return rc;
+        }
+        rc = ssh_scp_write(scp, buffer, 1);
+        
+        if (rc != SSH_OK)
+        {
+            fprintf(stderr, "Can't write to remote file: %s\n",
+                    ssh_get_error(session));
+            return rc;
+        }
+        printf("File %s uploaded\n", readyname);
+        
+        
         file_available--;
         
     }while(length != 0);
@@ -312,8 +343,8 @@ ssh_session open_ssh_session(char* host_name, char *username){
     }
     
     // Authenticate ourselves
-    // password = getpass("Password: ");
-    password = "z1627126C@SU";
+    password = getpass("Password: ");
+    //password = "z1627126C@SU";
     rc = ssh_userauth_password(my_ssh_session, NULL, password);
     if (rc != SSH_AUTH_SUCCESS)
     {
@@ -371,6 +402,68 @@ void* download(void* remote_info){
     time(&end);
     
     printf("Downloading time elapsed: %ld seconds\n", end-begin);
+    
+    return NULL;
+}
+
+void* remote_decompression(void* remote_info){
+    
+    // TODO!!!
+    
+    struct remote_file_info *info = (struct remote_file_info *) remote_info;
+    ssh_session my_ssh_session;
+    
+    char hostname[1024];
+    char username[1024];
+    char directory[1024];
+    
+    strcpy(hostname, info->host_name);
+    strcpy(username, info->username);
+    strcpy(directory, info->filename);
+    
+    ssh_channel channel;
+    int rc;
+    char buffer[256];
+    
+    my_ssh_session = open_ssh_session(hostname, username);
+    
+    channel = ssh_channel_new(my_ssh_session);
+    if (channel == NULL)
+        return NULL;
+    rc = ssh_channel_open_session(channel);
+    if (rc != SSH_OK)
+    {
+        ssh_channel_free(channel);
+        return NULL;
+    }
+    
+    strcat(buffer, "sfio -r foo.foo ");
+    strcat(buffer, directory);
+    strcat(buffer, "~/samFastqIO/ref/chr20");
+    
+    rc = ssh_channel_request_exec(channel, buffer);
+
+    
+    printf("Uploading file to %s@%s:%s/...\n", username, hostname, directory);
+    
+   
+    //rc = ssh_channel_request_exec(channel, "touch writetest.txt");
+    
+    //nwritten = ssh_channel_write(channel, "ls\n", 256);
+    //rc = ssh_channel_request_exec(channel, "cat >> writetest.txt");
+    //nbytes = read(0, buffer, sizeof(buffer));
+    
+    
+    if (rc != SSH_OK)
+    {
+        ssh_channel_close(channel);
+        ssh_channel_free(channel);
+        return NULL;
+    }
+
+    
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
     
     return NULL;
 }

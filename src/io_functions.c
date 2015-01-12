@@ -84,6 +84,11 @@ void open_new_iofile(struct io_stream_t* ios){
  */
 void stream_write_buffer(struct io_stream_t *os) {
     
+    FILE *temp_lock;
+    char lockname[256];
+    
+    int rc;
+    
     switch (os->mode) {
         case COMPRESSION:
             fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
@@ -100,10 +105,21 @@ void stream_write_buffer(struct io_stream_t *os) {
         case UPLOAD:
             sprintf(os->filePath, IDOFILE_PATH_ROOT "%010d", os->fileCtr);
             os->fileCtr++;
-            os->fp = fopen(os->filePath, "w");
             
+            //define and create the "ready" file
+            strcpy(lockname, os->filePath);
+            strcat(lockname, "_ready");
+            //
+            
+            os->fp = fopen(os->filePath, "w");
             fwrite(os->buf, sizeof(uint8_t), os->bufPos, os->fp);
             fclose(os->fp);
+            
+            // create the "ready" file
+            temp_lock = fopen(lockname, "w");
+            fclose(temp_lock);
+            //
+            
             file_available++;
             memset(os->buf, 0, sizeof(uint8_t)*(os->bufPos));
             os->written += os->bufPos;
@@ -129,12 +145,18 @@ void stream_write_buffer(struct io_stream_t *os) {
             sprintf(os->filePath, IDOFILE_PATH_ROOT "%010d", os->fileCtr);
             os->fileCtr++;
             
-            while (file_available == 0) ;
+            //define the "ready" file
+            strcpy(lockname, os->filePath);
+            strcat(lockname, "_ready");
+            //
+            
+            while ( (rc = access( lockname, F_OK )) == -1) ;
+            remove(lockname);
+            
             os->fp = fopen(os->filePath, "r");
             fread(os->buf, sizeof(uint8_t), IO_STREAM_BUF_LEN, os->fp);
             fclose(os->fp);
             remove(os->filePath);
-            file_available--;
             
             os->bufPos = 0;
             

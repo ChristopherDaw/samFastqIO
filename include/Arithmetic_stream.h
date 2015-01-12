@@ -111,6 +111,7 @@ int64_t read_from_remote_file(sftp_file file, char* buffer, uint32_t buff_len);
 
 void* download(void* remote_info);
 void* upload(void* remote_info);
+void* remote_decompression(void* remote_info);
 
 int clean_compressed_dir(struct io_stream_t* ios);
 void open_new_iofile(struct io_stream_t* ios);

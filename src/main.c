@@ -21,19 +21,21 @@
  * @param name Program name string
  */
 void usage(const char *name) {
-    printf("Usage: %s (options) [input file] [output folder] [ref file]\n", name);
+    printf("Usage: %s (options) [input file] [output] [ref file]\n", name);
     printf("Options are:\n");
     //printf("\t-q\t\t\t: Store quality values in compressed file (default)\n");
-    printf("\t-x\t\t: Regenerate FASTQ file from compressed file\n");
+    printf("\t-x\t\t: Regenerate file from compressed file\n");
     printf("\t-c [ratio]\t: Compress using [ratio] bits per bit of input entropy per symbol\n");
-    //printf("\t-r [rate]\t: Compress using fixed [rate] bits per symbol\n");
-    printf("\t-d [M|L|A]\t: Optimize for MSE, Log(1+L1), L1 distortions, respectively (default: MSE)\n");
+    printf("\t-d [rate]\t: Decompress and Download file from remote [output]\n");
+    printf("\t-u [rate]\t: Compress and Upload file to remote [output]\n");
+    printf("\t-s [rate]\t: Stream file to remote [output]\n");
+    printf("\t-D [M|L|A]\t: Optimize for MSE, Log(1+L1), L1 distortions, respectively (default: MSE)\n");
     //printf("\t-c [#]\t\t: Compress using [#] clusters (default: 3)\n");
     //printf("\t-u [FILE]\t: Write the uncompressed lossy values to FILE (default: off)\n");
     printf("\t-h\t\t: Print this help\n");
-    printf("\t-s\t\t: Print summary stats\n");
+    //printf("\t-s\t\t: Print summary stats\n");
     //printf("\t-t [lines]\t: Number of lines to use as training set (0 for all, 1000000 default)\n");
-    printf("\t-v\t\t: Enable verbose output\n");
+    //printf("\t-v\t\t: Enable verbose output\n");
 }
 
 
@@ -53,7 +55,7 @@ int main(int argc, const char * argv[]) {
     struct compressor_info_t comp_info;
     
     pthread_t compressor_thread;
-    //pthread_t network_thread;
+    pthread_t network_thread;
     
     time_t begin_main;
     time_t end_main = 0;
@@ -312,6 +314,33 @@ int main(int argc, const char * argv[]) {
             pthread_exit(NULL);
             
             break;
+            
+        case STREAMING:
+            
+            comp_info.mode = UPLOAD;
+            ptr = strtok((char*)output_name, "@");
+            strcpy(remote_info.username, ptr);
+            ptr = strtok(NULL, ":");
+            strcpy(remote_info.host_name, ptr);
+            ptr = strtok(NULL, "\0");
+            strcpy(remote_info.filename, ptr);
+            comp_info.fsam = fopen( input_name, "r");
+            comp_info.fref = fopen ( ref_name , "r" );
+            if ( comp_info.fref == NULL || comp_info.fsam == NULL ){
+                fputs ("File error while opening ref and sam files\n",stderr); exit (1);
+            }
+            comp_info.qv_opts = &opts;
+            
+            rc = pthread_create(&network_thread, NULL, remote_decompression , (void *)&comp_info);
+            rc = pthread_create(&compressor_thread, NULL, compress , (void *)&comp_info);
+            upload((void *)&remote_info);
+            
+            time(&end_main);
+            pthread_exit(NULL);
+            
+            
+            break;
+
             
         default:
             break;
