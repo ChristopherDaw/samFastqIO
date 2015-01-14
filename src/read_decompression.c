@@ -54,25 +54,18 @@ int store_reference_in_memory(FILE* refFile){
 /************************
  * Decompress the read
  **********************/
-uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change){
+uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change, struct sam_line_t *sline){
     
     int invFlag, tempP;
     
     read_models models = sb->reads->models;
     
     // Decompress the read
-    tempP = decompress_pos(as, models->pos, models->pos_alpha, chr_change);
+    tempP = decompress_pos(as, models->pos, models->pos_alpha, chr_change, &sline->pos);
     
-    // Check wether we are changing Chromosomes or we are at the end pf the last chromosome
-    if (tempP == CHR_CHANGE_FLAG)
-        return CHR_CHANGE_FLAG;
+    invFlag = decompress_flag(as, models->flag, &sline->flag);
     
-    else if (tempP == END_GENOME_FLAG)
-        return END_GENOME_FLAG;
-    
-    invFlag = decompress_flag(as, models->flag);
-    
-    reconstruct_read(as, models, tempP, invFlag, sb->fs);
+    reconstruct_read(as, models, tempP, invFlag, sline->read);
     
     return invFlag;
 }
@@ -81,21 +74,24 @@ uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change)
 /***********************
  * Decompress the Flag
  **********************/
-uint32_t decompress_flag(Arithmetic_stream a, stream_model *F){
+uint32_t decompress_flag(Arithmetic_stream a, stream_model *F, uint32_t *flag){
     
     
     // In this case we are just compressing the binary information of whether the
     // read is in reverse or not. we use F[0] as there is no context for the flag.
-    
-    int isReversed = 0;
-    
+    uint16_t x;
     // Read the value from the Arithmetic Stream
-    isReversed = read_value_from_as(a, F[0]);
+    x = read_value_from_as(a, F[0]);
     
     // Update model
-    update_model(F[0], isReversed);
+    update_model(F[0], x);
     
-    return isReversed;
+    *flag = x;
+    
+    x = x & 16;
+    x >>= 4;
+    
+    return x;
     
 }
 
@@ -144,7 +140,7 @@ uint32_t decompress_pos_alpha(Arithmetic_stream as, stream_model *PA){
 /**************************
  * Decompress the Position
  *************************/
-uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change){
+uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change, uint32_t *p){
     
     static uint32_t prevPos = 0;
     
@@ -180,6 +176,8 @@ uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA,
     
     // Decompress the position diference (+ 1 to reserve 0 for new symbols)
     pos = prevPos + x - 1;
+    
+    *p = pos;
     
     prevPos = pos;
     
@@ -295,7 +293,7 @@ uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref
 /*****************************************
  * Reconstruct the read
  ******************************************/
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fs){
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char *read){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, delPos = 0, ctrPos = 0, snpPos = 0, insPos = 0;
     uint32_t currentPos = 0, prevIns = 0, prev_pos = 0, delta = 0, deltaPos = 0;
@@ -310,11 +308,11 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     enum BASEPAIR refbp;
     
     char *tempRead = (char*)alloca(models->read_length*sizeof(char) + 2);
-    char *read = (char*)alloca(models->read_length*sizeof(char) + 4);
+    //char *read = (char*)alloca(models->read_length*sizeof(char) + 4);
     
-    read[models->read_length] = '\n';
-    read[models->read_length + 1] = '+';
-    read[models->read_length + 2] = '\n';
+    read[models->read_length] = 0;
+    //read[models->read_length + 1] = '+';
+    //read[models->read_length + 2] = '\n';
     
     if (pos < prevPos){
         deltaPos = pos;
@@ -348,7 +346,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 
         }
         
-        fwrite(read, models->read_length + 3, sizeof(char), fs);
+        //fwrite(read, models->read_length + 3, sizeof(char), fs);
         return 1;
     }
     
@@ -392,7 +390,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
     prev_pos = 0;
     for (i = 0; i < numSnps; i++){
         
-//        assert(currentPos < models->read_length);
+        assert(currentPos < models->read_length);
         
         // compute delta to next snp
         delta = compute_delta_to_first_snp(prev_pos, models->read_length);
@@ -432,7 +430,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
             for (ctrPos=currentPos; ctrPos < models->read_length - numIns; ctrPos++)
                 read[readCtr++] = tempRead[currentPos], currentPos++;
             
-            fwrite(read, models->read_length + 3, sizeof(char), fs);
+            //fwrite(read, models->read_length + 3, sizeof(char), fs);
             return 0;
             
             // There is an inversion
@@ -456,7 +454,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
             for (ctrPos=0; ctrPos < models->read_length; ctrPos++)
                 read[readCtr++] = bp_complement(tempRead[ models->read_length - 1 - ctrPos]);
             
-            fwrite(read, models->read_length + 3, sizeof(char), fs);
+            //fwrite(read, models->read_length + 3, sizeof(char), fs);
             return 1;
             
             

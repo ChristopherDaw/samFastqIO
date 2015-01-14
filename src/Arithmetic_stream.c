@@ -290,12 +290,12 @@ void arithmetic_encoder_step(Arithmetic_stream a, uint32_t cumCountX_1, uint32_t
     //}
     //cumCountX = cumCountX_1 + stats->counts[x];
     
-    //assert(cumCountX_1 < cumCountX);
+    assert(cumCountX_1 < cumCountX);
     
     a->u = a->l + (uint32_t)((range * cumCountX) / n) - 1;
     a->l = a->l + (uint32_t)((range * cumCountX_1) / n);
     
-//    assert(a->l <= a->u);
+    assert(a->l <= a->u);
     
     // Check the rescaling conditions
     msbL = a->l >> msb_shift;

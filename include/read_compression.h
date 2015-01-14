@@ -62,8 +62,8 @@ uint32_t compress_var(Arithmetic_stream a, stream_model *v, uint32_t pos, uint32
 uint32_t compress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx, uint8_t qv);
 double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray);
 double QVs_compress_lossless(Arithmetic_stream as, stream_model* models, qv_line line);
-double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv);
-double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv);
+double QVs_decompress(Arithmetic_stream as, qv_block info, uint8_t inv, char* quals);
+double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, uint8_t inv, char* quals);
 uint32_t decompress_qv(Arithmetic_stream a, stream_model *model, uint32_t idx);
 
 // Prototypes for the functions to extract the information from the reads
@@ -73,9 +73,9 @@ uint32_t compute_delta_to_first_snp(uint32_t prevPos, uint32_t readLen);
 
 
 // Prototypes for tghe decompression functions
-uint32_t decompress_flag(Arithmetic_stream a, stream_model *F);
+uint32_t decompress_flag(Arithmetic_stream a, stream_model *F, uint32_t *flag);
 uint32_t decompress_pos_alpha(Arithmetic_stream as, stream_model *PA);
-uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change);
+uint32_t decompress_pos(Arithmetic_stream as, stream_model *P, stream_model *PA, uint8_t chr_change, uint32_t *p);
 uint32_t decompress_match(Arithmetic_stream a, stream_model *M, uint32_t P);
 uint32_t decompress_snps(Arithmetic_stream a, stream_model *S);
 uint32_t decompress_indels(Arithmetic_stream a, stream_model *I);
@@ -83,8 +83,8 @@ uint32_t decompress_var(Arithmetic_stream a, stream_model *v,  uint32_t prevPos,
 uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref);
 
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine, uint8_t chr_change);
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, FILE *fs);
-uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change);
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char *read);
+uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change, struct sam_line_t *sline);
 int store_reference_in_memory(FILE* refFile);
 
 void foo();

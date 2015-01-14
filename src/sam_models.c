@@ -96,9 +96,9 @@ stream_model* initialize_stream_model_id(uint32_t rescale, uint32_t context_size
 
 stream_model *initialize_stream_model_flag(uint32_t rescale){
     
-    uint32_t i = 0;
+    uint32_t i = 0, j = 0;
     uint32_t context_size = 1;
-    uint32_t counts_size = 8;
+    uint32_t alphabetSize = 1 << 16;
     
     stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
     
@@ -107,20 +107,20 @@ stream_model *initialize_stream_model_flag(uint32_t rescale){
         s[i] = (stream_model) calloc(1, sizeof(struct stream_model_t));
     
         // Allocate memory
-        s[i]->counts = (uint32_t*) calloc(counts_size, sizeof(uint32_t));
+        s[i]->counts = (uint32_t*) calloc(alphabetSize+1, sizeof(uint32_t));
     
         // An extra for the cumcounts
         s[i]->counts += 1;
     
-        s[i]->alphabetCard = 2;
+        s[i]->alphabetCard = alphabetSize;
     
-        s[i]->counts[0] = 1;
-        s[i]->counts[1] = 1;
-    
-        s[i]->n = 2;
+        for (j = 0; j < alphabetSize; j++){
+            s[i]->counts[j] = 1;
+            s[i]->n++;
+        }
     
         // STEP
-        s[i]->step = 1;
+        s[i]->step = 8;
     
         //rescale factor
         s[i]->rescale = rescale;
@@ -616,6 +616,63 @@ rname_models alloc_rname_models_t(){
     return rtn;
 }
 
+/**
+ *
+ */
+mapq_models alloc_mapq_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    mapq_models rtn = calloc(1, sizeof(struct mapq_models_t));
+    
+    rtn->mapq = initialize_stream_model_id(rescale, 256, 256);
+    return rtn;
+}
+
+/**
+ *
+ */
+rnext_models alloc_rnext_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    rnext_models rtn = calloc(1, sizeof(struct rnext_models_t));
+    
+    rtn->same_ref = initialize_stream_model_id(rescale, 1, 3);
+    rtn->rnext = initialize_stream_model_id(rescale, 256, 256);
+    return rtn;
+}
+
+/**
+ *
+ */
+pnext_models alloc_pnext_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    pnext_models rtn = calloc(1, sizeof(struct pnext_models_t));
+    
+    rtn->zero = initialize_stream_model_id(rescale, 1, 2);
+    rtn->pnext = initialize_stream_model_id(rescale, 4, 256);
+    rtn->sign = initialize_stream_model_id(rescale, 1, 2);
+    
+    return rtn;
+}
+
+/**
+ *
+ */
+tlen_models alloc_tlen_models_t(){
+    
+    uint32_t rescale = 1 << 20;
+    
+    tlen_models rtn = calloc(1, sizeof(struct tlen_models_t));
+    
+    rtn->sign = initialize_stream_model_id(rescale, 1,3);
+    rtn->tlen = initialize_stream_model_id(rescale, 4, 256);
+    return rtn;
+}
+
 
 /**
  *
@@ -624,7 +681,7 @@ stream_model* initialize_stream_model_codebook(uint32_t rescale){
     
     // It is a byte-based model with the previous byte as context.
     uint32_t i = 0, j = 0;
-    uint32_t context_size = 256;
+    uint32_t context_size = 256*4;
     
     stream_model *s = (stream_model*) calloc(context_size, sizeof(stream_model));
     
@@ -805,7 +862,7 @@ symbol_t * copy_qlis_to_array(qv_block qb){
                 prev_qv = qb->qlist->input_alphabets[col]->symbols[idx_prevQV];
                 newidx = qb->qlist->input_alphabets[col]->indexes[prev_qv];
                 
-//                assert(newidx == idx_prevQV);
+                assert(newidx == idx_prevQV);
                 // Go through the possible current values
                 for (currentQV = 0; currentQV < qv_alphabet ; currentQV++) {
                     // New quantized QV

@@ -52,7 +52,21 @@
 #define MAX_ALPHA 5000000
 #define MAX_CARDINALITY 50000000
 
-
+struct sam_line_t{
+    char ID[1024];
+    uint32_t flag;
+    char rname[1024];
+    uint32_t pos;
+    uint8_t mapq;
+    char cigar[1024];
+    char rnext[1024];
+    uint32_t pnext;
+    uint32_t tlen;
+    char read[1024];
+    char quals[1024];
+    
+    uint32_t readLength;
+};
 
 
 struct compressor_info_t{
@@ -64,12 +78,40 @@ struct compressor_info_t{
     uint8_t lossiness;
 };
 
+typedef struct id_models_t{
+    stream_model *token_type;
+    stream_model *integer;
+    stream_model *delta;
+    stream_model *alpha_len;
+    stream_model *alpha_value;
+    stream_model *chars;
+    stream_model *zero_run;
+}*id_models;
+
 typedef struct rname_models_t{
     stream_model *rname;
     stream_model *same_ref;
 }*rname_models;
 
-enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_DELTA, ID_END};
+typedef struct rnext_models_t{
+    stream_model *rnext;
+    stream_model *same_ref;
+}*rnext_models;
+
+typedef struct pnext_models_t{
+    stream_model *pnext;
+    stream_model *zero;
+    stream_model *sign;
+}*pnext_models;
+
+typedef struct tlen_models_t{
+    stream_model *tlen;
+    stream_model *sign;
+}*tlen_models;
+
+typedef struct mapq_models_t{
+    stream_model *mapq;
+}*mapq_models;
 
 typedef struct read_models_t{
     stream_model *flag;
@@ -84,15 +126,7 @@ typedef struct read_models_t{
     char _readLength[4];
 }*read_models;
 
-typedef struct id_models_t{
-    stream_model *token_type;
-    stream_model *integer;
-    stream_model *delta;
-    stream_model *alpha_len;
-    stream_model *alpha_value;
-    stream_model *chars;
-    stream_model *zero_run;
-}*id_models;
+enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_DELTA, ID_END};
 
 // To store the model of the chars both in ref and target
 enum BASEPAIR {
@@ -137,6 +171,42 @@ typedef struct rname_block_t{
 /**
  *
  */
+typedef struct mapq_block_t{
+    char *mapq;
+    mapq_models models;
+    uint32_t block_length;
+} *mapq_block;
+
+/**
+ *
+ */
+typedef struct rnext_block_t{
+    char **rnext;
+    rnext_models models;
+    uint32_t block_length;
+} *rnext_block;
+
+/**
+ *
+ */
+typedef struct pnext_block_t{
+    uint32_t *pnext;
+    pnext_models models;
+    uint32_t block_length;
+} *pnext_block;
+
+/**
+ *
+ */
+typedef struct tlen_block_t{
+    uint32_t *tlen;
+    tlen_models models;
+    uint32_t block_length;
+} *tlen_block;
+
+/**
+ *
+ */
 typedef struct id_block_t{
     char **IDs;
     id_models models;
@@ -171,6 +241,7 @@ typedef struct qv_block_t {
     symbol_t *qArray;
 }*qv_block;
 
+//Deprecated
 typedef struct simplified_qv_block_t {
     uint32_t block_length;
     uint32_t columns;
@@ -188,6 +259,10 @@ typedef struct sam_block_t{
     read_block reads;
     id_block IDs;
     rname_block rnames;
+    mapq_block mapq;
+    rnext_block rnext;
+    pnext_block pnext;
+    tlen_block tlen;
     FILE *fs;
     char *path;
     uint32_t read_length;
@@ -217,6 +292,10 @@ stream_model* initialize_stream_model_codebook(uint32_t rescale);
 
 read_models alloc_read_models_t(uint32_t read_length);
 rname_models alloc_rname_models_t();
+mapq_models alloc_mapq_models_t();
+rnext_models alloc_rnext_models_t();
+pnext_models alloc_pnext_models_t();
+tlen_models alloc_tlen_models_t();
 
 //void alloc_stream_model_qv(qv_block qvBlock);
 
@@ -255,10 +334,19 @@ void quantize_block(qv_block qb, uint32_t read_length);
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 
 int compress_id(Arithmetic_stream as, id_models models, char *id);
-int decompress_id(Arithmetic_stream as, id_models model, FILE *fs);
+int decompress_id(Arithmetic_stream as, id_models model, char *id);
 
 int compress_rname(Arithmetic_stream as, rname_models models, char *rname);
 int decompress_rname(Arithmetic_stream as, rname_models models, char *rname);
+
+int compress_mapq(Arithmetic_stream as, mapq_models models, uint8_t mapq);
+int decompress_mapq(Arithmetic_stream as, mapq_models models, uint8_t *mapq);
+
+int compress_rnext(Arithmetic_stream as, rnext_models models, char *rnext);
+int decompress_rnext(Arithmetic_stream as, rnext_models models, char *rnext);
+
+int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext);
+int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t* pnext);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);

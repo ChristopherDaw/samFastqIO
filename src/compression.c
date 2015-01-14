@@ -12,6 +12,65 @@
 #include "sam_block.h"
 #include "read_compression.h"
 
+int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
+    
+    char foo[] = "CIGAR";
+    uint32_t fooo = 0;
+    
+    int32_t i = 0;
+    
+    switch (print_mode) {
+        case 0:
+            if ((sline->flag & 16) == 16) {
+                // We need to inverse the read and QV
+                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t",
+                        sline->ID,
+                        sline->flag,
+                        sline->rname,
+                        sline->pos,
+                        sline->mapq,
+                        //sline->cigar,
+                        foo,
+                        sline->rnext,
+                        sline->pnext,
+                        //sline->tlen,
+                        fooo
+                        );
+                for (i = sline->readLength - 1; i >=0 ; --i)
+                    fputc(bp_complement(sline->read[i]), fs);
+                    
+                fputc('\t', fs);
+                
+                for (i = sline->readLength - 1; i >=0 ; --i)
+                    fputc(sline->quals[i], fs);
+                
+                fputc('\n', fs);
+            }
+            else{
+                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t %s \t %s\n",
+                   sline->ID,
+                   sline->flag,
+                   sline->rname,
+                   sline->pos,
+                   sline->mapq,
+                   //sline->cigar,
+                   foo,
+                   sline->rnext,
+                   sline->pnext,
+                   //sline->tlen,
+                    fooo,
+                   sline->read,
+                   sline->quals
+                   );
+            }
+            break;
+            
+        default:
+            break;
+    }
+    return 0;
+}
+
 int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  {
     
     unsigned int i = 0;
@@ -35,23 +94,19 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     
     compress_id(as, samBlock->IDs->models, *samBlock->IDs->IDs);
     
+    compress_mapq(as, samBlock->mapq->models, *samBlock->mapq->mapq);
+    
+    compress_rnext(as, samBlock->rnext->models, *samBlock->rnext->rnext);
+    
     compress_read(as, samBlock->reads->models, samBlock->reads->lines, chr_change);
     
-    if (lossiness == LOSSY) {
-        //quantize_line(samBlock->QVs, &(samBlock->QVs->qv_lines[i]), samBlock->read_length);
+    compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->pnext->pnext);
     
+    if (lossiness == LOSSY)
         QVs_compress(as, samBlock->QVs, samBlock->QVs->qArray);
-        //QVs_compress2(as, samBlock->QVs);
-            //QVs_compress2(as, samBlock->QVs->qlist->input_alphabets, samBlock->QVs->qlist->qratio, &(samBlock->QVs->qv_lines[i]), qArray, samBlock->QVs->model, &(samBlock->QVs->well));
-    }
     else
         QVs_compress_lossless(as, samBlock->QVs->model, samBlock->QVs->qv_lines);
     
-    // Check if we are in the last block
-    //if (i < MAX_LINES_PER_BLOCK){
-      //  compress_rname(as, samBlock->rnames->models, "\n");
-      //  return 0;
-    //}
     
     return 1;
 }
@@ -62,43 +117,56 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
     
     uint32_t decompression_flag = 0;
     
+    struct sam_line_t sline;
+    
+    sline.readLength = samBlock->read_length;
+    
     //printf("Decompressing the block...\n");
     // Loop over the lines of the sam block
         
-        chr_change = decompress_rname(as, samBlock->rnames->models, NULL);
+    chr_change = decompress_rname(as, samBlock->rnames->models, sline.rname);
         
-        if (chr_change == -1)
-            return 0;
+    if (chr_change == -1)
+        return 0;
         
-        if (chr_change == 1){
+    if (chr_change == 1){
             
-            //printf("Chromosome %d decompressed.\n", ++chrCtr);
+        //printf("Chromosome %d decompressed.\n", ++chrCtr);
             
-            // Store Ref sequence in memory
-            store_reference_in_memory(samBlock->fref);
+        // Store Ref sequence in memory
+        store_reference_in_memory(samBlock->fref);
             
-            // Clean snpInRef vector and reset cumsumP
-            cumsumP = 0;
-            memset(snpInRef, 0, MAX_BP_CHR);
-        }
+        // Clean snpInRef vector and reset cumsumP
+        cumsumP = 0;
+        memset(snpInRef, 0, MAX_BP_CHR);
+    }
         
-        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+    decompress_id(as, samBlock->IDs->models, sline.ID);
+    
+    decompress_mapq(as, samBlock->mapq->models, &sline.mapq);
+    
+    decompress_rnext(as, samBlock->rnext->models, sline.rnext);
         
-        decompression_flag = decompress_read(as,samBlock, chr_change);
+    decompression_flag = decompress_read(as,samBlock, chr_change, &sline);
+    
+    decompress_pnext(as, samBlock->pnext->models, sline.pos, &sline.pnext);
         
         if (lossiness == LOSSY) {
             
-            QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
+            QVs_decompress(as, samBlock->QVs, decompression_flag, sline.quals);
         }
         else
-            QVs_decompress_lossless(as, samBlock->QVs, samBlock->fs, decompression_flag);
+            QVs_decompress_lossless(as, samBlock->QVs, decompression_flag, sline.quals);
+    
+    print_line(&sline, 0, samBlock->fs);
     
     return 1;
 }
 
 
 
-int compress_block(Arithmetic_stream as, sam_block samBlock){
+
+/*int compress_block(Arithmetic_stream as, sam_block samBlock){
     
     unsigned int i = 0;
     uint8_t chr_change;
@@ -187,7 +255,7 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
     
     int32_t chr_change = 0;
     
-    uint32_t decompression_flag = 0;
+    //uint32_t decompression_flag = 0;
     
     // initialize the QV model
     printf("Computing the codebook for the QVs...\n");
@@ -214,16 +282,16 @@ int decompress_block(Arithmetic_stream as, sam_block samBlock){
             memset(snpInRef, 0, MAX_BP_CHR);
         }
         
-        decompress_id(as, samBlock->IDs->models, samBlock->fs);
+        //decompress_id(as, samBlock->IDs->models, samBlock->fs);
         
-        decompression_flag = decompress_read(as,samBlock, chr_change);
+        //decompression_flag = decompress_read(as,samBlock, chr_change);
         
-        QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
+        //QVs_decompress(as, samBlock->QVs, samBlock->fs, decompression_flag);
         
     }
     
     return 1;
-}
+}*/
 
 
 
@@ -309,8 +377,7 @@ void* decompress(void *thread_info){
     // Decompress the blocks
     while(decompress_line(as, samBlock, info->lossiness)){
         //reset_QV_block(samBlock->QVs, DECOMPRESSION);
-        //n += samBlock->block_length;
-        ;
+        n++;
     }
     
     n += samBlock->block_length;

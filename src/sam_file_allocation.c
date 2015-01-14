@@ -66,6 +66,84 @@ rname_block alloc_rname_block(){
     return rtn;
 }
 
+/**
+ *
+ */
+mapq_block alloc_mapq_block(){
+    
+    mapq_block rtn = (mapq_block) calloc(1, sizeof(struct mapq_block_t));
+    
+    rtn->block_length = 1;
+    
+    rtn->mapq = (char*) calloc(rtn->block_length, sizeof(char));
+    
+    // Allocate (and initialize) the models for the rnames
+    rtn->models = alloc_mapq_models_t();
+    
+    return rtn;
+}
+
+
+
+/**
+ *
+ */
+rnext_block alloc_rnext_block(){
+    uint32_t i = 0;
+    
+    rnext_block rtn = (rnext_block) calloc(1, sizeof(struct rnext_block_t));
+    
+    rtn->block_length = 1;
+    
+    rtn->rnext = (char**) calloc(rtn->block_length, sizeof(char*));
+    
+    // allocate the memory for each of the lines
+    for (i = 0; i < rtn->block_length; i++) {
+        
+        rtn->rnext[i] = (char*) calloc(MAX_READ_LENGTH, sizeof(char));
+    }
+    
+    // Allocate (and initialize) the models for the rnames
+    rtn->models = alloc_rnext_models_t();
+    
+    return rtn;
+}
+
+/**
+ *
+ */
+pnext_block alloc_pnext_block(){
+    
+    pnext_block rtn = (pnext_block) calloc(1, sizeof(struct pnext_block_t));
+    
+    rtn->block_length = 1;
+    
+    rtn->pnext = (uint32_t *) calloc(rtn->block_length, sizeof(uint32_t*));
+    
+    // Allocate (and initialize) the models for the rnames
+    rtn->models = alloc_pnext_models_t();
+    
+    return rtn;
+}
+
+/**
+ *
+ */
+tlen_block alloc_tlen_block(){
+    
+    tlen_block rtn = (tlen_block) calloc(1, sizeof(struct tlen_block_t));
+    
+    rtn->block_length = 1;
+    
+    rtn->tlen = (uint32_t *) calloc(rtn->block_length, sizeof(uint32_t*));
+    
+    // Allocate (and initialize) the models for the rnames
+    rtn->models = alloc_tlen_models_t();
+    
+    return rtn;
+}
+
+
 
 /**
  *
@@ -76,7 +154,7 @@ id_block alloc_id_block(){
     
     id_block rtn = (id_block) calloc(1, sizeof(struct id_block_t));
     
-    rtn->block_length = MAX_LINES_PER_BLOCK;
+    rtn->block_length = 1;
     
     rtn->IDs = (char**) calloc(rtn->block_length, sizeof(char*));
     
@@ -99,7 +177,7 @@ read_block alloc_read_block_t(uint32_t read_length){
     
     read_block rf = (read_block) calloc(1, sizeof(struct read_block_t));
     
-    rf->block_length = MAX_LINES_PER_BLOCK;
+    rf->block_length = 1;
     
     rf->lines = (read_line) calloc(rf->block_length, sizeof(struct read_line_t));
         
@@ -269,6 +347,20 @@ sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct 
     //RNAMEs
     sb->rnames = alloc_rname_block();
     
+    //MAPQ
+    sb->mapq = alloc_mapq_block();
+    
+    //RNEXT
+    sb->rnext = alloc_rnext_block();
+    
+    //PNEXT
+    sb->pnext = alloc_pnext_block();
+    
+    //TLEN
+    sb->tlen = alloc_tlen_block();
+    
+    
+    
     return sb;
     
 }
@@ -403,19 +495,15 @@ uint32_t load_sam_block(sam_block sb){
 uint32_t load_sam_line(sam_block sb){
     
     int32_t j = 0;
-    read_line rline = NULL;
-    qv_line qvline = NULL;
+    read_line rline = sb->reads->lines;
+    qv_line qvline = sb->QVs->qv_lines;
     
     
     char buffer[1024];
     char *ptr;
-    char *ID_line;
-    char *rname_line;
-        
-    rline = sb->reads->lines;
-    qvline = sb->QVs->qv_lines;
-    ID_line = *sb->IDs->IDs;
-    rname_line = *sb->rnames->rnames;
+    char *ID_line = *sb->IDs->IDs;
+    char *rname_line = *sb->rnames->rnames;
+    char *rnext = *sb->rnext->rnext;
         
     rline->read_length = sb->read_length;
     qvline->columns = sb->read_length;
@@ -433,35 +521,39 @@ uint32_t load_sam_line(sam_block sb){
         strcpy(rname_line, ptr);
         // POS
         ptr = strtok(NULL, "\t");
-            rline->pos = atoi(ptr);
-            // MAPQ
-            ptr = strtok(NULL, "\t");
-            // CIGAR
-            ptr = strtok(NULL, "\t");
-            strcpy(rline->cigar, ptr);
-            // RNEXT
-            ptr = strtok(NULL, "\t");
-            // PNEXT
-            ptr = strtok(NULL, "\t");
-            // TLEN
-            ptr = strtok(NULL, "\t");
-            // SEQ
-            ptr = strtok(NULL, "\t");
-            strcpy(rline->read, ptr);
-            // QUAL
-            ptr = strtok(NULL, "\t");
-            // Read the QVs and translate them to a 0-based scale
-            // Check if the read is inversed
-            if (rline->invFlag & 16) { // The read is inverted
-                for (j = sb->read_length - 1; j >= 0; j--) {
-                    qvline->data[j] = (*ptr) - 33, ptr++;
-                }
+        rline->pos = atoi(ptr);
+        // MAPQ
+        ptr = strtok(NULL, "\t");
+        *sb->mapq->mapq = atoi(ptr);
+        // CIGAR
+        ptr = strtok(NULL, "\t");
+        strcpy(rline->cigar, ptr);
+        // RNEXT
+        ptr = strtok(NULL, "\t");
+        strcpy(rnext, ptr);
+        // PNEXT
+        ptr = strtok(NULL, "\t");
+        *sb->pnext->pnext = atoi(ptr);
+        // TLEN
+        ptr = strtok(NULL, "\t");
+        *sb->tlen->tlen = atoi(ptr);
+        // SEQ
+        ptr = strtok(NULL, "\t");
+        strcpy(rline->read, ptr);
+        // QUAL
+        ptr = strtok(NULL, "\t");
+        // Read the QVs and translate them to a 0-based scale
+        // Check if the read is inversed
+        if (rline->invFlag & 16) { // The read is inverted
+            for (j = sb->read_length - 1; j >= 0; j--) {
+                qvline->data[j] = (*ptr) - 33, ptr++;
             }
-            else{ // The read is not inversed
-                for (j = 0; j < sb->read_length; j++) {
-                    qvline->data[j] = (*ptr) - 33, ptr++;
-                }
+        }
+        else{ // The read is not inversed
+            for (j = 0; j < sb->read_length; j++) {
+                qvline->data[j] = (*ptr) - 33, ptr++;
             }
+        }
         // Read the AUX fields until end of line, and store the MD field
         while( NULL != (ptr = strtok(NULL, "\t")) ){
             // Do something

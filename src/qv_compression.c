@@ -188,19 +188,19 @@ double QVs_compress_lossless(Arithmetic_stream as, stream_model* models, qv_line
     return 0;
 }
 
-double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv) {
+double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, uint8_t inv, char* quals) {
     
     uint8_t prev_qv = 0;
     uint32_t columns = info->columns;
     
     int s = 0;
-    char *line = (char *) _alloca(columns+1);
-    line[columns] = '\n';
+    //char *line = (char *) _alloca(columns+1);
+    quals[columns] = '\n';
     
     for (s = 0; s < columns; ++s) {
-        line[s] = decompress_qv(as, info->model, get_qv_model_index(s, prev_qv));
-        prev_qv = line[s];
-        line[s] += 33;
+        quals[s] = decompress_qv(as, info->model, get_qv_model_index(s, prev_qv));
+        prev_qv = quals[s];
+        quals[s] += 33;
     }
     
     /*if (inv) {
@@ -212,19 +212,19 @@ double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, FILE *fout, 
      }
      else fwrite(line, 1, columns +1, fout);
      */
-    fwrite(line, 1, columns +1, fout);
+    //fwrite(line, 1, columns +1, fout);
     return 1;
 }
 
-double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t inv) {
+double QVs_decompress(Arithmetic_stream as, qv_block info, uint8_t inv, char* quals) {
     
     uint32_t idx = 0, q_state = 0;
     uint8_t prev_qv = 0, foo;
     uint32_t columns = info->columns;
     
     int s = 0;
-    char *line = (char *) _alloca(columns+1);
-    line[columns] = '\n';
+    //char *line = (char *) _alloca(columns+1);
+    quals[columns] = 0;
     
     struct quantizer_t *q;
     
@@ -234,14 +234,14 @@ double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t i
     // Quantize, compress and calculate error simultaneously
     // Reading in the lines corrects the quality values to alphabet offsets
     q_state = decompress_qv(as, info->model, get_qv_model_index(0, idx));
-    line[0] = q->output_alphabet->symbols[q_state] + 33;
-    prev_qv = line[0] - 33;
+    quals[0] = q->output_alphabet->symbols[q_state] + 33;
+    prev_qv = quals[0] - 33;
     
     for (s = 1; s < columns; ++s) {
         q = choose_quantizer(info->qlist, &info->well, s, prev_qv, &idx, &foo);
         q_state = decompress_qv(as, info->model, get_qv_model_index(s, idx));
-        line[s] = q->output_alphabet->symbols[q_state] + 33;
-        prev_qv = line[s] - 33;
+        quals[s] = q->output_alphabet->symbols[q_state] + 33;
+        prev_qv = quals[s] - 33;
     }
     
     /*if (inv) {
@@ -253,7 +253,7 @@ double QVs_decompress(Arithmetic_stream as, qv_block info, FILE *fout, uint8_t i
     }
     else fwrite(line, 1, columns +1, fout);
     */
-    fwrite(line, 1, columns +1, fout);
+    //fwrite(line, 1, columns +1, fout);
     return 1;
 }
 

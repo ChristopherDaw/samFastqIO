@@ -26,7 +26,7 @@ uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLi
     //tempF = compress_flag(as, models->flag, 0);
     chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF);
     
-//    assert(samLine->pos  == chrPos);
+    assert(samLine->pos  == chrPos);
 
     return 1;
 }
@@ -38,8 +38,9 @@ uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLi
 uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag){
     
     
-    // In this case we are just compressing the binary information of whether the
-    // read is in reverse or not. we use F[0] as there is no context for the flag.
+    // In this case we need to compress the whole flag, althugh the binary information of whether the
+    // read is in reverse or not is the most important. Thus, we return the binary info.
+    //we use F[0] as there is no context for the flag.
     
     uint16_t x = 0;
     
@@ -47,10 +48,10 @@ uint32_t compress_flag(Arithmetic_stream a, stream_model *F, uint16_t flag){
     x >>= 15;
     
     // Send the value to the Arithmetic Stream
-    send_value_to_as(a, F[0], x);
+    send_value_to_as(a, F[0], flag);
     
     // Update model
-    update_model(F[0], x);
+    update_model(F[0], flag);
     
     return x;
     

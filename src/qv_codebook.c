@@ -26,23 +26,23 @@ uint32_t compress_int(Arithmetic_stream as, stream_model *PA, uint32_t x){
     
     // Send B1 to the Arithmetic Stream using the alphabet model
     Byte = (x & 0x00ff0000) >> 16;
-    send_value_to_as(as, PA[prevByte], Byte);
+    send_value_to_as(as, PA[1], Byte);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[1], Byte);
     prevByte = Byte;
     
     // Send B2 to the Arithmetic Stream using the alphabet model
     Byte = (x & 0x0000ff00) >> 8;
-    send_value_to_as(as, PA[prevByte], Byte);
+    send_value_to_as(as, PA[2], Byte);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[2], Byte);
     prevByte = Byte;
     
     // Send B3 to the Arithmetic Stream using the alphabet model
     Byte = (x & 0x000000ff);
-    send_value_to_as(as, PA[prevByte], Byte);
+    send_value_to_as(as, PA[3], Byte);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[3], Byte);
     
     return 1;
     
@@ -67,25 +67,25 @@ uint32_t decompress_int(Arithmetic_stream as, stream_model *PA){
      x = Byte << 24;
     
     // Read B1 from the Arithmetic Stream using the alphabet model
-    Byte = read_value_from_as(as, PA[prevByte]);
+    Byte = read_value_from_as(as, PA[1]);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[1], Byte);
     prevByte = Byte;
     
     x |= Byte << 16;
     
     // Send B2 to the Arithmetic Stream using the alphabet model
-    Byte = read_value_from_as(as, PA[prevByte]);
+    Byte = read_value_from_as(as, PA[2]);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[2], Byte);
     prevByte = Byte;
     
     x |= Byte << 8;
     
     // Send B3 to the Arithmetic Stream using the alphabet model
-    Byte = read_value_from_as(as, PA[prevByte]);
+    Byte = read_value_from_as(as, PA[3]);
     // Update model
-    update_model(PA[prevByte], Byte);
+    update_model(PA[3], Byte);
     
      x |= Byte;
     
@@ -290,7 +290,7 @@ void store_cond_quantizers_indexed(struct quantizer_t *restrict lo, struct quant
  */
 struct quantizer_t *choose_quantizer(struct cond_quantizer_list_t *list, struct well_state_t *well, uint32_t column, symbol_t prev, uint32_t *q_idx, uint8_t *type) {
 	uint32_t idx = get_symbol_index(list->input_alphabets[column], prev);
-//	assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
+	assert(idx != ALPHABET_SYMBOL_NOT_FOUND);
 	if (well_1024a_bits(well, 7) >= list->qratio[column][idx]) {
         *q_idx = 2*idx+1;
         *type = 1;

@@ -64,6 +64,157 @@ int compress_rname(Arithmetic_stream as, rname_models models, char *rname){
     
 }
 
+int compress_mapq(Arithmetic_stream as, mapq_models models, uint8_t mapq){
+    
+    compress_uint8t(as, models->mapq[0], mapq);
+    
+    return 0;
+}
+
+int decompress_mapq(Arithmetic_stream as, mapq_models models, uint8_t *mapq){
+    
+    *mapq = decompress_uint8t(as, models->mapq[0]);
+    
+    return 0;
+}
+
+int compress_rnext(Arithmetic_stream as, rnext_models models, char *rnext){
+    
+    static char prev_name[1024] = {0};
+    static int prevChar = 0;
+    
+    uint32_t ctr = 0;
+    
+    switch (rnext[0]) {
+        case '=':
+            compress_uint8t(as, models->same_ref[0], 0);
+            return 0;
+        case '*':
+            compress_uint8t(as, models->same_ref[0], 1);
+            return 1;
+        default:
+            compress_uint8t(as, models->same_ref[0], 2);
+            break;
+    }
+    
+    
+    while (*rnext) {
+        compress_uint8t(as, models->rnext[prevChar], *rnext);
+        prev_name[ctr++] = *rnext;
+        prevChar = *rnext++;
+    }
+    compress_uint8t(as, models->rnext[prevChar], 0);
+    prev_name[ctr] = 0;
+    
+    return 1;
+}
+
+int decompress_rnext(Arithmetic_stream as, rnext_models models, char *rnext){
+    
+    static char prev_name[1024] = {0};
+    static int prevChar = 0;
+    
+    uint8_t equal_flag = 0, ch;
+    
+    uint32_t ctr = 0;
+    
+    equal_flag = decompress_uint8t(as, models->same_ref[0]);
+    
+    switch (equal_flag) {
+        case 0:
+            *rnext = '=', rnext++;
+            *rnext = 0;
+            return 0;
+        case 1:
+            *rnext = '*', rnext++;
+            *rnext = 0;
+            return 1;
+        default:
+            break;
+    }
+    
+    while ( (ch = decompress_uint8t(as, models->rnext[prevChar])) ) {
+        
+        *rnext = ch, rnext++;
+        prev_name[ctr++] = ch;
+        prevChar = ch;
+    }
+    *rnext = 0;
+    
+    return 2;
+    
+}
+
+int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext){
+    
+    uint32_t delta = 0;
+    
+    if (pnext == 0) {
+        send_value_to_as(as, models->zero[0], 0);
+        return 0;
+    }
+    else{
+        send_value_to_as(as, models->zero[0], 1);
+        
+        if (pnext > pos){
+            
+            delta = pnext - pos;
+            send_value_to_as(as, models->sign[0], 0);
+            send_value_to_as(as, models->pnext[0], (delta >> 0) & 0xff);
+            send_value_to_as(as, models->pnext[1], (delta >> 8) & 0xff);
+            send_value_to_as(as, models->pnext[2], (delta >> 16) & 0xff);
+            send_value_to_as(as, models->pnext[3], (delta >> 24) & 0xff);
+        }
+        else {
+            delta = pos - pnext;
+            send_value_to_as(as, models->sign[0], 1);
+            send_value_to_as(as, models->pnext[0], (delta >> 0) & 0xff);
+            send_value_to_as(as, models->pnext[1], (delta >> 8) & 0xff);
+            send_value_to_as(as, models->pnext[2], (delta >> 16) & 0xff);
+            send_value_to_as(as, models->pnext[3], (delta >> 24) & 0xff);
+        }
+    }
+    
+    return 1;
+}
+
+int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t* pnext){
+    
+    uint32_t delta = 0;
+    
+   
+    
+    if ( read_value_from_as(as, models->zero[0]) == 0) {
+        *pnext = 0;
+        return 0;
+    }
+    else{
+        
+        if (read_value_from_as(as, models->sign[0]) == 0){
+            
+            delta |= (read_value_from_as(as, models->pnext[0]) & 0xff) << 0;
+            delta |= (read_value_from_as(as, models->pnext[1]) & 0xff) << 8;
+            delta |= (read_value_from_as(as, models->pnext[2]) & 0xff) << 16;
+            delta |= (read_value_from_as(as, models->pnext[3]) & 0xff) << 24;
+            
+            *pnext = delta + pos;
+        }
+        else {
+            delta |= (read_value_from_as(as, models->pnext[0]) & 0xff) << 0;
+            delta |= (read_value_from_as(as, models->pnext[1]) & 0xff) << 8;
+            delta |= (read_value_from_as(as, models->pnext[2]) & 0xff) << 16;
+            delta |= (read_value_from_as(as, models->pnext[3]) & 0xff) << 24;
+            
+            *pnext = pos - delta;
+        }
+    }
+    
+    return 1;
+}
+
+
+
+
 int compress_id(Arithmetic_stream as, id_models models, char *id){
     
     static char prev_ID[1024] = {0};
@@ -213,6 +364,7 @@ int decompress_rname(Arithmetic_stream as, rname_models models, char *rname){
             }
             prev_name[ctr++] = ch;
             prevChar = ch;
+            *rname = ch, rname++;
         }
 
     }
@@ -224,12 +376,12 @@ int decompress_rname(Arithmetic_stream as, rname_models models, char *rname){
 
 
 
-int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
+int decompress_id(Arithmetic_stream as, id_models model, char *id){
     
     static char prev_ID[1024] = {0};
     static uint32_t prev_tokens_ptr[1024] = {0};
     static uint32_t prev_tokens_len[1024] = {0};
-    char id[1024] = {0};
+    //char id[1024] = {0};
     uint8_t token_len = 0;
     uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0;
     uint32_t delta = 0;
@@ -286,9 +438,9 @@ int decompress_id(Arithmetic_stream as, id_models model, FILE *fs){
     }
     
     strcpy(prev_ID, id);
-    id[i++] = '\n';
-    putc('@', fs);
-    fwrite(id, i, sizeof(char), fs);
+    //id[i++] = '\n';
+    //putc('@', fs);
+    //fwrite(id, i, sizeof(char), fs);
     
     return 1;
 }
