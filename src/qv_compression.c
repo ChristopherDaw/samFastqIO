@@ -195,7 +195,7 @@ double QVs_decompress_lossless(Arithmetic_stream as, qv_block info, uint8_t inv,
     
     int s = 0;
     //char *line = (char *) _alloca(columns+1);
-    quals[columns] = '\n';
+    quals[columns] = 0;
     
     for (s = 0; s < columns; ++s) {
         quals[s] = decompress_qv(as, info->model, get_qv_model_index(s, prev_qv));

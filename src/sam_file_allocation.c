@@ -135,7 +135,7 @@ tlen_block alloc_tlen_block(){
     
     rtn->block_length = 1;
     
-    rtn->tlen = (uint32_t *) calloc(rtn->block_length, sizeof(uint32_t*));
+    rtn->tlen = (int32_t *) calloc(rtn->block_length, sizeof(int32_t*));
     
     // Allocate (and initialize) the models for the rnames
     rtn->models = alloc_tlen_models_t();

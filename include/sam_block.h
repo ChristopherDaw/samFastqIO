@@ -61,7 +61,7 @@ struct sam_line_t{
     char cigar[1024];
     char rnext[1024];
     uint32_t pnext;
-    uint32_t tlen;
+    int32_t tlen;
     char read[1024];
     char quals[1024];
     
@@ -99,14 +99,17 @@ typedef struct rnext_models_t{
 }*rnext_models;
 
 typedef struct pnext_models_t{
-    stream_model *pnext;
+    stream_model *diff_pnext;
     stream_model *zero;
     stream_model *sign;
+    stream_model *assumption;
+    stream_model *raw_pnext;
 }*pnext_models;
 
 typedef struct tlen_models_t{
     stream_model *tlen;
     stream_model *sign;
+    stream_model *zero;
 }*tlen_models;
 
 typedef struct mapq_models_t{
@@ -199,7 +202,7 @@ typedef struct pnext_block_t{
  *
  */
 typedef struct tlen_block_t{
-    uint32_t *tlen;
+    int32_t *tlen;
     tlen_models models;
     uint32_t block_length;
 } *tlen_block;
@@ -345,8 +348,13 @@ int decompress_mapq(Arithmetic_stream as, mapq_models models, uint8_t *mapq);
 int compress_rnext(Arithmetic_stream as, rnext_models models, char *rnext);
 int decompress_rnext(Arithmetic_stream as, rnext_models models, char *rnext);
 
-int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext);
-int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t* pnext);
+int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, int32_t tlen, uint32_t pnext, uint8_t rname_rnextDiff, char* cigar);
+int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, int32_t tlen, uint32_t readLength, uint32_t* pnext, uint8_t rname_rnextDiff, char* cigar);
+int compress_pnext_raw(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext);
+int decompress_pnext_raw(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t* pnext);
+
+int compress_tlen(Arithmetic_stream as, tlen_models models, int32_t tlen);
+int decompress_tlen(Arithmetic_stream as, tlen_models models, int32_t* tlen);
 
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);

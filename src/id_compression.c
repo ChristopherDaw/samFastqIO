@@ -145,65 +145,128 @@ int decompress_rnext(Arithmetic_stream as, rnext_models models, char *rnext){
     
 }
 
-int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext){
+int compress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, int32_t tlen, uint32_t pnext, uint8_t rname_rnextDiff, char* cigar){
+    
+    uint32_t p = 0, pn = 0, cig_op_len = 0, readLength = 0;
+    
+    if (rname_rnextDiff) {
+        
+        compress_uint8t(as, models->raw_pnext[0], (pnext >> 0) & 0xff);
+        compress_uint8t(as, models->raw_pnext[1], (pnext >> 8) & 0xff);
+        compress_uint8t(as, models->raw_pnext[2], (pnext >> 16) & 0xff);
+        compress_uint8t(as, models->raw_pnext[3], (pnext >> 24) & 0xff);
+        
+        return 0;
+    }
+    
+    else
+    
+    if (tlen == 0) {
+        if (pnext == pos) {
+            compress_uint8t(as, models->assumption[0], 0);
+        }
+        
+        else{
+            compress_uint8t(as, models->assumption[0], 1);
+            compress_pnext_raw(as, models, pos, pnext);
+        }
+        
+        return 0;
+    }
+    else if (tlen > 0){
+        
+        p = pos;
+        pn = pnext;
+        
+    }
+    
+    else{
+        p = pnext;
+        pn = pos;
+        tlen = -tlen;
+    }
+    
+    while (*cigar) {
+        cig_op_len = atoi(cigar);
+        cigar += compute_num_digits(cig_op_len);
+        if (*cigar == 'M' || *cigar == 'D' || *cigar == 'N') {
+            readLength += cig_op_len;
+        }
+        ++cigar;
+    }
+    
+    if (pn == tlen + p - readLength) {
+        compress_uint8t(as, models->assumption[0], 0);
+    }
+    else{
+        compress_uint8t(as, models->assumption[0], 1);
+        compress_pnext_raw(as, models, p, pn);
+    }
+    
+        
+    return 1;
+}
+
+
+int compress_pnext_raw(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t pnext){
     
     uint32_t delta = 0;
     
+    
+    
     if (pnext == 0) {
-        send_value_to_as(as, models->zero[0], 0);
+        compress_uint8t(as, models->zero[0], 0);
         return 0;
     }
     else{
-        send_value_to_as(as, models->zero[0], 1);
+        compress_uint8t(as, models->zero[0], 1);
         
         if (pnext > pos){
             
             delta = pnext - pos;
-            send_value_to_as(as, models->sign[0], 0);
-            send_value_to_as(as, models->pnext[0], (delta >> 0) & 0xff);
-            send_value_to_as(as, models->pnext[1], (delta >> 8) & 0xff);
-            send_value_to_as(as, models->pnext[2], (delta >> 16) & 0xff);
-            send_value_to_as(as, models->pnext[3], (delta >> 24) & 0xff);
+            compress_uint8t(as, models->sign[0], 0);
         }
         else {
             delta = pos - pnext;
-            send_value_to_as(as, models->sign[0], 1);
-            send_value_to_as(as, models->pnext[0], (delta >> 0) & 0xff);
-            send_value_to_as(as, models->pnext[1], (delta >> 8) & 0xff);
-            send_value_to_as(as, models->pnext[2], (delta >> 16) & 0xff);
-            send_value_to_as(as, models->pnext[3], (delta >> 24) & 0xff);
+            compress_uint8t(as, models->sign[0], 1);
         }
+        
+        compress_uint8t(as, models->diff_pnext[0], (delta >> 0) & 0xff);
+        compress_uint8t(as, models->diff_pnext[1], (delta >> 8) & 0xff);
+        compress_uint8t(as, models->diff_pnext[2], (delta >> 16) & 0xff);
+        compress_uint8t(as, models->diff_pnext[3], (delta >> 24) & 0xff);
     }
     
     return 1;
 }
 
-int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, uint32_t* pnext){
+
+int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, int32_t tlen, uint32_t readLength, uint32_t *pnext, uint8_t rname_rnextDiff, char* cigar){
     
-    uint32_t delta = 0;
+    uint32_t delta = 0, comp_flag = 0;
+    
+    
     
    
+    comp_flag = decompress_uint8t(as, models->zero[0]);
     
-    if ( read_value_from_as(as, models->zero[0]) == 0) {
+    if ( comp_flag == 0) {
         *pnext = 0;
         return 0;
     }
     else{
+        comp_flag = decompress_uint8t(as, models->sign[0]);
         
-        if (read_value_from_as(as, models->sign[0]) == 0){
-            
-            delta |= (read_value_from_as(as, models->pnext[0]) & 0xff) << 0;
-            delta |= (read_value_from_as(as, models->pnext[1]) & 0xff) << 8;
-            delta |= (read_value_from_as(as, models->pnext[2]) & 0xff) << 16;
-            delta |= (read_value_from_as(as, models->pnext[3]) & 0xff) << 24;
+        delta |= (decompress_uint8t(as, models->raw_pnext[0]) & 0xff) << 0;
+        delta |= (decompress_uint8t(as, models->raw_pnext[1]) & 0xff) << 8;
+        delta |= (decompress_uint8t(as, models->raw_pnext[2]) & 0xff) << 16;
+        delta |= (decompress_uint8t(as, models->raw_pnext[3]) & 0xff) << 24;
+        
+        if (comp_flag == 0){
             
             *pnext = delta + pos;
         }
         else {
-            delta |= (read_value_from_as(as, models->pnext[0]) & 0xff) << 0;
-            delta |= (read_value_from_as(as, models->pnext[1]) & 0xff) << 8;
-            delta |= (read_value_from_as(as, models->pnext[2]) & 0xff) << 16;
-            delta |= (read_value_from_as(as, models->pnext[3]) & 0xff) << 24;
             
             *pnext = pos - delta;
         }
@@ -212,6 +275,62 @@ int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, ui
     return 1;
 }
 
+int compress_tlen(Arithmetic_stream as, tlen_models models, int32_t tlen){
+    
+    int32_t delta = 0;
+    
+    if (tlen == 0) {
+        compress_uint8t(as, models->zero[0], 0);
+        return 0;
+    }
+    else{
+        compress_uint8t(as, models->zero[0], 1);
+        
+        if (tlen > 0){
+            delta = tlen;
+            compress_uint8t(as, models->sign[0], 0);
+        }
+        else {
+            delta = -tlen;
+            compress_uint8t(as, models->sign[0], 1);
+            
+        }
+        compress_uint8t(as, models->tlen[0], (delta >> 0) & 0xff);
+        compress_uint8t(as, models->tlen[1], (delta >> 8) & 0xff);
+        compress_uint8t(as, models->tlen[2], (delta >> 16) & 0xff);
+        compress_uint8t(as, models->tlen[3], (delta >> 24) & 0xff);
+    }
+    
+    return 1;
+}
+int decompress_tlen(Arithmetic_stream as, tlen_models models, int32_t* tlen){
+    
+    int32_t delta = 0;
+    uint32_t decomp_flag = 0;
+    
+    decomp_flag = decompress_uint8t(as, models->zero[0]);
+    
+    if ( decomp_flag == 0) {
+        *tlen = 0;
+        return 0;
+    }
+    else{
+        
+        decomp_flag = decompress_uint8t(as, models->sign[0]);
+        
+        delta |= (decompress_uint8t(as, models->tlen[0]) & 0xff) << 0;
+        delta |= (decompress_uint8t(as, models->tlen[1]) & 0xff) << 8;
+        delta |= (decompress_uint8t(as, models->tlen[2]) & 0xff) << 16;
+        delta |= (decompress_uint8t(as, models->tlen[3]) & 0xff) << 24;
+        
+        if (decomp_flag == 0)
+            *tlen = delta;
+        else
+            *tlen = -delta;
+    }
+    
+    return 1;
+}
 
 
 

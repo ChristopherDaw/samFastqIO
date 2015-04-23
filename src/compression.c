@@ -15,7 +15,6 @@
 int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
     
     char foo[] = "CIGAR";
-    uint32_t fooo = 0;
     
     int32_t i = 0;
     
@@ -33,8 +32,7 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
                         foo,
                         sline->rnext,
                         sline->pnext,
-                        //sline->tlen,
-                        fooo
+                        sline->tlen
                         );
                 for (i = sline->readLength - 1; i >=0 ; --i)
                     fputc(bp_complement(sline->read[i]), fs);
@@ -57,8 +55,7 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
                    foo,
                    sline->rnext,
                    sline->pnext,
-                   //sline->tlen,
-                    fooo,
+                   sline->tlen,
                    sline->read,
                    sline->quals
                    );
@@ -73,16 +70,19 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
 
 int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  {
     
-    unsigned int i = 0;
     uint8_t chr_change;
     
     // Load the data from the file
     if(load_sam_line(samBlock))
         return 0;
+    
+    if ( (samBlock->reads->lines->invFlag & 4) == 4) {
+        return 1;
+    }
         
     // Compress sam line
     
-    chr_change = compress_rname(as, samBlock->rnames->models, samBlock->rnames->rnames[i]);
+    chr_change = compress_rname(as, samBlock->rnames->models, *samBlock->rnames->rnames);
         
     if (chr_change == 1){
         // Store Ref sequence in memory
@@ -100,7 +100,9 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     
     compress_read(as, samBlock->reads->models, samBlock->reads->lines, chr_change);
     
-    compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->pnext->pnext);
+    compress_tlen(as, samBlock->tlen->models, *samBlock->tlen->tlen);
+    
+    compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->tlen->tlen, *samBlock->pnext->pnext, (*samBlock->rnext->rnext[0] != '='), samBlock->reads->lines->cigar);
     
     if (lossiness == LOSSY)
         QVs_compress(as, samBlock->QVs, samBlock->QVs->qArray);
@@ -149,14 +151,15 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
         
     decompression_flag = decompress_read(as,samBlock, chr_change, &sline);
     
-    decompress_pnext(as, samBlock->pnext->models, sline.pos, &sline.pnext);
+    decompress_tlen(as, samBlock->tlen->models, &sline.tlen);
+    
+    decompress_pnext(as, samBlock->pnext->models, sline.pos, sline.tlen, samBlock->read_length, &sline.pnext, sline.rnext[0] != '=', NULL);
         
-        if (lossiness == LOSSY) {
-            
+    if (lossiness == LOSSY) {
             QVs_decompress(as, samBlock->QVs, decompression_flag, sline.quals);
-        }
-        else
-            QVs_decompress_lossless(as, samBlock->QVs, decompression_flag, sline.quals);
+    }
+    else
+        QVs_decompress_lossless(as, samBlock->QVs, decompression_flag, sline.quals);
     
     print_line(&sline, 0, samBlock->fs);
     
@@ -338,6 +341,8 @@ void* compress(void *thread_info){
     
     //end the compression
     compress_file_size = encoder_last_step(as);
+    
+    printf("Final Size: %lld\n", compress_file_size);
     
     //printf("%f Million reads compressed using %f MB.\n", (double)n/1000000.0, (double)compress_file_size/1000000.0);
     

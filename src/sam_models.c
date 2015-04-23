@@ -653,8 +653,10 @@ pnext_models alloc_pnext_models_t(){
     pnext_models rtn = calloc(1, sizeof(struct pnext_models_t));
     
     rtn->zero = initialize_stream_model_id(rescale, 1, 2);
-    rtn->pnext = initialize_stream_model_id(rescale, 4, 256);
+    rtn->raw_pnext = initialize_stream_model_id(rescale, 4, 256);
+    rtn->diff_pnext = initialize_stream_model_id(rescale, 4, 256);
     rtn->sign = initialize_stream_model_id(rescale, 1, 2);
+    rtn->assumption = initialize_stream_model_id(rescale, 1, 2);
     
     return rtn;
 }
@@ -664,11 +666,12 @@ pnext_models alloc_pnext_models_t(){
  */
 tlen_models alloc_tlen_models_t(){
     
-    uint32_t rescale = 1 << 20;
+    uint32_t rescale = 1 << 23;
     
     tlen_models rtn = calloc(1, sizeof(struct tlen_models_t));
     
     rtn->sign = initialize_stream_model_id(rescale, 1,3);
+    rtn->zero = initialize_stream_model_id(rescale, 1,2);
     rtn->tlen = initialize_stream_model_id(rescale, 4, 256);
     return rtn;
 }

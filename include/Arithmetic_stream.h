@@ -36,7 +36,7 @@
 #define LOSSLESS 8
 #define LOSSY 9
 
-#define ARITHMETIC_WORD_LENGTH 24
+#define ARITHMETIC_WORD_LENGTH 26
 
 #ifndef IDOFILE_PATH_ROOT
 #define IDOFILE_PATH_ROOT "/tmp/idoFiles/idoFile."
