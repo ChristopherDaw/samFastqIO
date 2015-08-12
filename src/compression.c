@@ -102,7 +102,9 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     
     compress_tlen(as, samBlock->tlen->models, *samBlock->tlen->tlen);
     
-    compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->tlen->tlen, *samBlock->pnext->pnext, (*samBlock->rnext->rnext[0] != '='), samBlock->reads->lines->cigar);
+    compress_pnext_raw(as, samBlock->pnext->models,  samBlock->reads->lines->pos, *samBlock->pnext->pnext);
+    
+    //compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->tlen->tlen, *samBlock->pnext->pnext, (*samBlock->rnext->rnext[0] != '='), samBlock->reads->lines->cigar);
     
     if (lossiness == LOSSY)
         QVs_compress(as, samBlock->QVs, samBlock->QVs->qArray);

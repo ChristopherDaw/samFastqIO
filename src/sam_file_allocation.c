@@ -248,7 +248,7 @@ simplified_qv_block alloc_simplified_qv_block_t(struct qv_options_t *opts, uint3
     
     symbol_t *sym_buffer;
     
-    uint32_t i = 0, input_alphabet_size = 41;
+    uint32_t i = 0, input_alphabet_size = QV_ALPHABET_SIZE;
     
     uint32_t rescale = 1 << 20;
     

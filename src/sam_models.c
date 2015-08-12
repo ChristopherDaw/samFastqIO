@@ -850,7 +850,7 @@ void quantize_line(qv_block qb, qv_line qline, uint32_t read_length){
 
 symbol_t * copy_qlis_to_array(qv_block qb){
     
-    uint32_t qv_alphabet = 41, num_quantizer_types = 2, prev_qv;
+    uint32_t qv_alphabet = QV_ALPHABET_SIZE, num_quantizer_types = 2, prev_qv;
     uint32_t num_columns = qb->columns;
     
     symbol_t *qArray = (symbol_t*) calloc(num_columns*qv_alphabet*qv_alphabet*num_quantizer_types*2 + 10, sizeof(symbol_t));

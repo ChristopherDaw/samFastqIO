@@ -257,10 +257,10 @@ int decompress_pnext(Arithmetic_stream as, pnext_models models, uint32_t pos, in
     else{
         comp_flag = decompress_uint8t(as, models->sign[0]);
         
-        delta |= (decompress_uint8t(as, models->raw_pnext[0]) & 0xff) << 0;
-        delta |= (decompress_uint8t(as, models->raw_pnext[1]) & 0xff) << 8;
-        delta |= (decompress_uint8t(as, models->raw_pnext[2]) & 0xff) << 16;
-        delta |= (decompress_uint8t(as, models->raw_pnext[3]) & 0xff) << 24;
+        delta |= (decompress_uint8t(as, models->diff_pnext[0]) & 0xff) << 0;
+        delta |= (decompress_uint8t(as, models->diff_pnext[1]) & 0xff) << 8;
+        delta |= (decompress_uint8t(as, models->diff_pnext[2]) & 0xff) << 16;
+        delta |= (decompress_uint8t(as, models->diff_pnext[3]) & 0xff) << 24;
         
         if (comp_flag == 0){
             

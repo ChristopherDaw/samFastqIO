@@ -102,6 +102,9 @@ double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray) {
     
     
     uint32_t s = 0, idx = 0, q_state1 = 0, idx1 = 0;
+    uint32_t a_head = QV_ALPHABET_SIZE;
+    uint32_t q_head = QV_ALPHABET_SIZE*QV_ALPHABET_SIZE;
+    uint32_t s_head = q_head<<1;
     //double error = 0.0;
     uint8_t prev_qv = 0, currentQV = 0, quantizer_type, qv1;
     uint32_t columns = info->columns;
@@ -142,7 +145,8 @@ double QVs_compress(Arithmetic_stream as, qv_block info, symbol_t *qArray) {
         //q_state = q->output_alphabet->indexes[qv];
         //counts_3 += (float)(clock() - begin)/CLOCKS_PER_SEC;
         
-        idx1 = (s*3362 + quantizer_type*1681 + prev_qv*41 + currentQV) << 1;
+        
+        idx1 = (s*s_head + quantizer_type*q_head + prev_qv*a_head + currentQV) << 1;
         
         qv1 = qArray[idx1++];
         
