@@ -344,7 +344,6 @@ ssh_session open_ssh_session(char* host_name, char *username){
     
     // Authenticate ourselves
     password = getpass("Password: ");
-    //password = "z1627126C@SU";
     rc = ssh_userauth_password(my_ssh_session, NULL, password);
     if (rc != SSH_AUTH_SUCCESS)
     {
