@@ -4,14 +4,34 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>Users/cnavast/Desktop/sam/Makefile.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>samFastqIO.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>test.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>C9135B331B84CCA100FAAA8C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C9135B3B1B84D0CD00FAAA8C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>C9DBF7B71B7EA22700976B3A</key>
 		<dict>
 			<key>primary</key>

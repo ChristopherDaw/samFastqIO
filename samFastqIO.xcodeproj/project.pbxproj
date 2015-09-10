@@ -6,44 +6,57 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		C9DBF7BC1B7EA22700976B3A /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = C9DBF7BB1B7EA22700976B3A /* main.c */; };
-		C9DBF7BE1B7EA22700976B3A /* samFastqIO.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C9DBF7BD1B7EA22700976B3A /* samFastqIO.1 */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		C9DBF7B61B7EA22700976B3A /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-				C9DBF7BE1B7EA22700976B3A /* samFastqIO.1 in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		C9DBF7B81B7EA22700976B3A /* samFastqIO */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = samFastqIO; sourceTree = BUILT_PRODUCTS_DIR; };
-		C9DBF7BB1B7EA22700976B3A /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		C9DBF7BD1B7EA22700976B3A /* samFastqIO.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = samFastqIO.1; sourceTree = "<group>"; };
+		C9DBF7C51B7EA25600976B3A /* Arithmetic_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Arithmetic_stream.h; sourceTree = "<group>"; };
+		C9DBF7C61B7EA25600976B3A /* distortion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = distortion.h; sourceTree = "<group>"; };
+		C9DBF7C71B7EA25600976B3A /* pmf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pmf.h; sourceTree = "<group>"; };
+		C9DBF7C81B7EA25600976B3A /* quantizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = quantizer.h; sourceTree = "<group>"; };
+		C9DBF7C91B7EA25600976B3A /* qv_codebook.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qv_codebook.h; sourceTree = "<group>"; };
+		C9DBF7CA1B7EA25600976B3A /* qv_compressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qv_compressor.h; sourceTree = "<group>"; };
+		C9DBF7CB1B7EA25600976B3A /* read_compression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = read_compression.h; sourceTree = "<group>"; };
+		C9DBF7CC1B7EA25600976B3A /* sam_block.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sam_block.h; sourceTree = "<group>"; };
+		C9DBF7CD1B7EA25600976B3A /* stream_model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_model.h; sourceTree = "<group>"; };
+		C9DBF7CE1B7EA25600976B3A /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		C9DBF7CF1B7EA25600976B3A /* well.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = well.h; sourceTree = "<group>"; };
+		C9DBF7D01B7EA25600976B3A /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		C9DBF7D11B7EA25600976B3A /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		C9DBF7D21B7EA25600976B3A /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
+		C9DBF7D41B7EA25600976B3A /* arith.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = arith.c; sourceTree = "<group>"; };
+		C9DBF7D51B7EA25600976B3A /* Arithmetic_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Arithmetic_stream.c; sourceTree = "<group>"; };
+		C9DBF7D61B7EA25600976B3A /* cluster.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cluster.c; sourceTree = "<group>"; };
+		C9DBF7D71B7EA25600976B3A /* compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = compression.c; sourceTree = "<group>"; };
+		C9DBF7D81B7EA25600976B3A /* distortion.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = distortion.c; sourceTree = "<group>"; };
+		C9DBF7D91B7EA25600976B3A /* id_compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id_compression.c; sourceTree = "<group>"; };
+		C9DBF7DA1B7EA25600976B3A /* io_functions.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = io_functions.c; sourceTree = "<group>"; };
+		C9DBF7DB1B7EA25600976B3A /* lines.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lines.c; sourceTree = "<group>"; };
+		C9DBF7DC1B7EA25600976B3A /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		C9DBF7DD1B7EA25600976B3A /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		C9DBF7DE1B7EA25600976B3A /* pmf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pmf.c; sourceTree = "<group>"; };
+		C9DBF7DF1B7EA25600976B3A /* quantizer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = quantizer.c; sourceTree = "<group>"; };
+		C9DBF7E01B7EA25600976B3A /* qv_codebook.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qv_codebook.c; sourceTree = "<group>"; };
+		C9DBF7E11B7EA25600976B3A /* qv_compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qv_compression.c; sourceTree = "<group>"; };
+		C9DBF7E21B7EA25600976B3A /* qv_compressor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qv_compressor.c; sourceTree = "<group>"; };
+		C9DBF7E31B7EA25600976B3A /* read_compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = read_compression.c; sourceTree = "<group>"; };
+		C9DBF7E41B7EA25600976B3A /* read_decompression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = read_decompression.c; sourceTree = "<group>"; };
+		C9DBF7E51B7EA25600976B3A /* sam_file_allocation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sam_file_allocation.c; sourceTree = "<group>"; };
+		C9DBF7E61B7EA25600976B3A /* sam_models.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sam_models.c; sourceTree = "<group>"; };
+		C9DBF7E71B7EA25600976B3A /* sfio_ssh_session.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sfio_ssh_session.c; sourceTree = "<group>"; };
+		C9DBF7E81B7EA25600976B3A /* stream_model.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stream_model.c; sourceTree = "<group>"; };
+		C9DBF7E91B7EA25600976B3A /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
+		C9DBF7EA1B7EA25600976B3A /* well.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = well.c; sourceTree = "<group>"; };
+		C9FD93541B922A7700A76010 /* aux_compression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aux_compression.h; sourceTree = "<group>"; };
+		C9FD93551B922A8600A76010 /* aux_compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aux_compression.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		C9DBF7B51B7EA22700976B3A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		C9DBF7AF1B7EA22700976B3A = {
 			isa = PBXGroup;
 			children = (
+				C9DBF7C41B7EA25600976B3A /* include */,
+				C9DBF7D01B7EA25600976B3A /* LICENSE */,
+				C9DBF7D11B7EA25600976B3A /* Makefile */,
+				C9DBF7D21B7EA25600976B3A /* README.md */,
+				C9DBF7D31B7EA25600976B3A /* src */,
 				C9DBF7BA1B7EA22700976B3A /* samFastqIO */,
 				C9DBF7B91B7EA22700976B3A /* Products */,
 			);
@@ -52,7 +65,6 @@
 		C9DBF7B91B7EA22700976B3A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C9DBF7B81B7EA22700976B3A /* samFastqIO */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -60,33 +72,78 @@
 		C9DBF7BA1B7EA22700976B3A /* samFastqIO */ = {
 			isa = PBXGroup;
 			children = (
-				C9DBF7BB1B7EA22700976B3A /* main.c */,
-				C9DBF7BD1B7EA22700976B3A /* samFastqIO.1 */,
 			);
 			path = samFastqIO;
 			sourceTree = "<group>";
 		};
+		C9DBF7C41B7EA25600976B3A /* include */ = {
+			isa = PBXGroup;
+			children = (
+				C9DBF7C51B7EA25600976B3A /* Arithmetic_stream.h */,
+				C9DBF7C61B7EA25600976B3A /* distortion.h */,
+				C9DBF7C71B7EA25600976B3A /* pmf.h */,
+				C9DBF7C81B7EA25600976B3A /* quantizer.h */,
+				C9DBF7C91B7EA25600976B3A /* qv_codebook.h */,
+				C9DBF7CA1B7EA25600976B3A /* qv_compressor.h */,
+				C9DBF7CB1B7EA25600976B3A /* read_compression.h */,
+				C9DBF7CC1B7EA25600976B3A /* sam_block.h */,
+				C9DBF7CD1B7EA25600976B3A /* stream_model.h */,
+				C9DBF7CE1B7EA25600976B3A /* util.h */,
+				C9DBF7CF1B7EA25600976B3A /* well.h */,
+				C9FD93541B922A7700A76010 /* aux_compression.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		C9DBF7D31B7EA25600976B3A /* src */ = {
+			isa = PBXGroup;
+			children = (
+				C9DBF7D41B7EA25600976B3A /* arith.c */,
+				C9DBF7D51B7EA25600976B3A /* Arithmetic_stream.c */,
+				C9DBF7D61B7EA25600976B3A /* cluster.c */,
+				C9DBF7D71B7EA25600976B3A /* compression.c */,
+				C9DBF7D81B7EA25600976B3A /* distortion.c */,
+				C9DBF7D91B7EA25600976B3A /* id_compression.c */,
+				C9DBF7DA1B7EA25600976B3A /* io_functions.c */,
+				C9DBF7DB1B7EA25600976B3A /* lines.c */,
+				C9DBF7DC1B7EA25600976B3A /* main.c */,
+				C9DBF7DD1B7EA25600976B3A /* Makefile */,
+				C9DBF7DE1B7EA25600976B3A /* pmf.c */,
+				C9DBF7DF1B7EA25600976B3A /* quantizer.c */,
+				C9DBF7E01B7EA25600976B3A /* qv_codebook.c */,
+				C9DBF7E11B7EA25600976B3A /* qv_compression.c */,
+				C9DBF7E21B7EA25600976B3A /* qv_compressor.c */,
+				C9DBF7E31B7EA25600976B3A /* read_compression.c */,
+				C9DBF7E41B7EA25600976B3A /* read_decompression.c */,
+				C9DBF7E51B7EA25600976B3A /* sam_file_allocation.c */,
+				C9DBF7E61B7EA25600976B3A /* sam_models.c */,
+				C9DBF7E71B7EA25600976B3A /* sfio_ssh_session.c */,
+				C9DBF7E81B7EA25600976B3A /* stream_model.c */,
+				C9DBF7E91B7EA25600976B3A /* util.c */,
+				C9DBF7EA1B7EA25600976B3A /* well.c */,
+				C9FD93551B922A8600A76010 /* aux_compression.c */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
-/* Begin PBXNativeTarget section */
-		C9DBF7B71B7EA22700976B3A /* samFastqIO */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C9DBF7C11B7EA22700976B3A /* Build configuration list for PBXNativeTarget "samFastqIO" */;
+/* Begin PBXLegacyTarget section */
+		C9135B3B1B84D0CD00FAAA8C /* test */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = C9135B3C1B84D0CD00FAAA8C /* Build configuration list for PBXLegacyTarget "test" */;
 			buildPhases = (
-				C9DBF7B41B7EA22700976B3A /* Sources */,
-				C9DBF7B51B7EA22700976B3A /* Frameworks */,
-				C9DBF7B61B7EA22700976B3A /* CopyFiles */,
 			);
-			buildRules = (
-			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "";
 			dependencies = (
 			);
-			name = samFastqIO;
-			productName = samFastqIO;
-			productReference = C9DBF7B81B7EA22700976B3A /* samFastqIO */;
-			productType = "com.apple.product-type.tool";
+			name = test;
+			passBuildSettingsInEnvironment = 1;
+			productName = test;
 		};
-/* End PBXNativeTarget section */
+/* End PBXLegacyTarget section */
 
 /* Begin PBXProject section */
 		C9DBF7B01B7EA22700976B3A /* Project object */ = {
@@ -107,23 +164,39 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C9DBF7B71B7EA22700976B3A /* samFastqIO */,
+				C9135B3B1B84D0CD00FAAA8C /* test */,
 			);
 		};
 /* End PBXProject section */
 
-/* Begin PBXSourcesBuildPhase section */
-		C9DBF7B41B7EA22700976B3A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C9DBF7BC1B7EA22700976B3A /* main.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
-
 /* Begin XCBuildConfiguration section */
+		C9135B3D1B84D0CD00FAAA8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = "";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		C9135B3E1B84D0CD00FAAA8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		C9DBF7BF1B7EA22700976B3A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -141,6 +214,8 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -179,6 +254,7 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = YES;
+				DEBUGGING_SYMBOLS = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -194,23 +270,18 @@
 			};
 			name = Release;
 		};
-		C9DBF7C21B7EA22700976B3A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		C9DBF7C31B7EA22700976B3A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C9135B3C1B84D0CD00FAAA8C /* Build configuration list for PBXLegacyTarget "test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9135B3D1B84D0CD00FAAA8C /* Debug */,
+				C9135B3E1B84D0CD00FAAA8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C9DBF7B31B7EA22700976B3A /* Build configuration list for PBXProject "samFastqIO" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -219,14 +290,6 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
-		};
-		C9DBF7C11B7EA22700976B3A /* Build configuration list for PBXNativeTarget "samFastqIO" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C9DBF7C21B7EA22700976B3A /* Debug */,
-				C9DBF7C31B7EA22700976B3A /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
