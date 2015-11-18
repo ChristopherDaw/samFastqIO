@@ -8,7 +8,6 @@
 
 #include "sam_block.h"
 
-
 int char2basepair(char c)
 {
     switch(c)
@@ -579,6 +578,10 @@ read_models alloc_read_models_t(uint32_t read_length){
     rtn->chars = initialize_stream_model_chars(rescale);
     
     
+    rtn->cigar = initialize_stream_model_id(rescale, 1, 255);
+    rtn->cigarFlags = initialize_stream_model_id(rescale, 1, 2);
+    rtn->rlength = initialize_stream_model_id(rescale, 4, 255);
+
     return rtn;
 }
 
@@ -626,6 +629,54 @@ mapq_models alloc_mapq_models_t(){
     mapq_models rtn = calloc(1, sizeof(struct mapq_models_t));
     
     rtn->mapq = initialize_stream_model_id(rescale, 256, 256);
+    return rtn;
+}
+
+/**
+ *
+ */
+aux_models alloc_aux_models_t(){
+    
+    /*
+     typedef struct aux_models_t{
+     stream_model *qAux; //no. of aux fields
+     stream_model *LUTflag; //if the tagtype is found on the LUT
+     stream_model *tagtypeLUT; //value on the LUT
+     stream_model *tag; //if not found, tag value
+     stream_model *type; //if not found, type value
+     stream_model *iidBytes; //everything else
+     }*aux_models;*/
+    
+    uint32_t rescale = 1 << 20;
+    
+    aux_models rtn = calloc(1, sizeof(struct aux_models_t));
+    
+    rtn->qAux = initialize_stream_model_id(rescale, 1, 256);
+
+    rtn->tagtypeLUTflag = initialize_stream_model_id(rescale, 1, 2);
+    rtn->typeLUTflag = initialize_stream_model_id(rescale, 1, 2);
+
+    rtn->tagtypeLUT = initialize_stream_model_id(rescale, 1, TAGTYPELUTLENGTH);
+
+    rtn->tag = initialize_stream_model_id(rescale, 2, 62);
+    rtn->typeLUT = initialize_stream_model_id(rescale, 1, TYPELUTLENGTH);
+    rtn->typeRAW = initialize_stream_model_id(rescale, 1, TYPELUTLENGTH);
+    
+    
+    rtn->descBytes = initialize_stream_model_id(rescale, 1, 256);
+    rtn->iidBytes = initialize_stream_model_id(rescale, 1, 256);
+    
+    //stream_model *most_common_values;
+    //stream_model *most_common_flag;
+    rtn->most_common_values = initialize_stream_model_id(rescale, 1, MOST_COMMON_LIST_SIZE);
+    rtn->most_common_flag = initialize_stream_model_id(rescale, 1, 2);
+    
+    rtn->most_common_list = initialize_stream_model_id(rescale, 1, 256);
+    
+    rtn->sign_integers = initialize_stream_model_id(rescale, 1, 2);
+    rtn->integers = initialize_stream_model_id(rescale, 1, 256);
+    
+
     return rtn;
 }
 

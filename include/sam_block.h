@@ -31,6 +31,8 @@
 #include "util.h"
 #include "well.h"
 #include "quantizer.h"
+#include "aux_data.h"
+
 
 
 #define MAX_READ_LENGTH 1024
@@ -64,6 +66,7 @@ struct sam_line_t{
     int32_t tlen;
     char read[1024];
     char quals[1024];
+    char aux[MAX_AUX_FIELDS*(MAX_AUX_LENGTH+1)];
     
     uint32_t readLength;
 };
@@ -125,9 +128,36 @@ typedef struct read_models_t{
     stream_model *indels;
     stream_model *var;
     stream_model *chars;
+    stream_model *cigar;
+    stream_model *cigarFlags;
+    stream_model *rlength;
     uint32_t read_length;
     char _readLength[4];
 }*read_models;
+
+
+typedef struct aux_models_t{
+    stream_model *qAux; //no. of aux fields per read
+    stream_model *tagtypeLUTflag; //if the tagtype is found on the tagTypeLUT.
+    stream_model *typeLUTflag; //if the type is found on the typeLUT.
+    stream_model *tagtypeLUT; //value on the tagTypeLUT (0 to TAGTYPELUTLENGTH-1)
+    stream_model *tag; //if tagtype not in tagTypeLUT, raw tag value
+    stream_model *typeLUT; //if tagtype not in tagTypeLUT, value of type on typeLUT (0 to TYPELUTLENGTH-1)
+    stream_model *typeRAW; //if type not in typeLUT, raw type value.
+    stream_model *descBytes; //bytes of the desc
+    
+    stream_model *most_common_values; //for the values (indices) of the most common list.
+    stream_model *most_common_flag; //is it in the common list? flag
+    
+    stream_model *most_common_list; //for compressing the list itself so that the decoder knows how to demap the indices.
+    
+    stream_model *iidBytes; //everything else
+    
+    // PROVISIONALES
+    stream_model *sign_integers; //type = i
+    stream_model *integers; //type = i
+    stream_model *pruebaCharContexto;
+}*aux_models;
 
 enum token_type{ ID_ALPHA, ID_DIGIT, ID_CHAR, ID_MATCH, ID_ZEROS, ID_DELTA, ID_END};
 
@@ -146,6 +176,7 @@ enum BASEPAIR {
  */
 typedef struct read_line_t{
     char *cigar;
+    uint8_t cigarFlags; //To check if the cigar can be recovered from indels, etc.
     char *edits;
     char *read;
     uint16_t invFlag;
@@ -216,6 +247,7 @@ typedef struct id_block_t{
     uint32_t block_length;
 } *id_block;
 
+
 /**
  *
  */
@@ -223,6 +255,19 @@ typedef struct qv_line_t {
     symbol_t *data;
     uint32_t columns;
 }*qv_line;
+
+/**
+ *
+ */
+typedef struct aux_block_t{
+    char **aux_str;
+    char **most_common;
+    uint32_t most_common_size;
+    aux_models models;
+    uint32_t block_length;
+    uint8_t aux_cnt;
+}*aux_block;
+
 
 
 /**
@@ -273,7 +318,37 @@ typedef struct sam_block_t{
     stream_model *codebook_model;
     FILE *fref;
     uint32_t current_line; // used for decompression
+    
+    aux_block aux;
 }*sam_block;
+
+
+
+
+// Stuctures to handle the reads
+typedef struct ch_t{
+    char refChar;
+    char targetChar;
+}ch_t;
+
+typedef struct snp{
+    uint32_t pos;
+    enum BASEPAIR refChar;
+    enum BASEPAIR targetChar;
+    uint32_t ctr;
+}snp;
+
+typedef struct ins{
+    uint32_t pos;
+    enum BASEPAIR targetChar;
+}ins;
+
+
+typedef struct cigarIndels{
+    uint32_t pos;
+    uint32_t num;
+    char letter;
+}cigarIndels;
 
 
 // Function Prototypes
@@ -299,6 +374,7 @@ mapq_models alloc_mapq_models_t();
 rnext_models alloc_rnext_models_t();
 pnext_models alloc_pnext_models_t();
 tlen_models alloc_tlen_models_t();
+aux_models alloc_aux_models_t();
 
 //void alloc_stream_model_qv(qv_block qvBlock);
 
@@ -336,6 +412,10 @@ void quantize_block(qv_block qb, uint32_t read_length);
 
 stream_model *free_stream_model_qv(struct cond_quantizer_list_t *q_list, stream_model *s);
 
+
+int compress_most_common_list(Arithmetic_stream as, aux_block aux);
+int decompress_most_common_list(Arithmetic_stream as, aux_block aux);
+
 int compress_id(Arithmetic_stream as, id_models models, char *id);
 int decompress_id(Arithmetic_stream as, id_models model, char *id);
 
@@ -356,6 +436,14 @@ int decompress_pnext_raw(Arithmetic_stream as, pnext_models models, uint32_t pos
 int compress_tlen(Arithmetic_stream as, tlen_models models, int32_t tlen);
 int decompress_tlen(Arithmetic_stream as, tlen_models models, int32_t* tlen);
 
+int compress_aux(Arithmetic_stream as, aux_models models, char **aux_str, uint8_t aux_cnt, aux_block aux);
+int decompress_aux(Arithmetic_stream as, aux_block aux, char* finalLine);
+
+
+int compress_cigar(Arithmetic_stream as, read_models models, char *cigar, uint8_t cigarFlags);
+
+
+
 int compress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_block(Arithmetic_stream as, sam_block samBlock);
 int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness);
@@ -367,6 +455,12 @@ uint32_t compute_num_digits(uint32_t x);
 uint32_t load_qv_line(qv_block QV);
 uint32_t load_sam_line(sam_block sb);
 uint32_t load_qv_training_block(qv_block QV);
+
+uint8_t create_most_common_list(sam_block sb);
+uint8_t get_most_common_token(char** list, uint32_t list_size, char* aux_field);
+
+uint32_t reconstructCigar(uint32_t* Dels, ins* Insers, uint32_t numDels, uint32_t numIns, uint32_t totalReadLength, char* recCigar);
+
 
 
 #endif

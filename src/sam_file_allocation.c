@@ -182,6 +182,36 @@ id_block alloc_id_block(){
 /**
  *
  */
+aux_block alloc_aux_block() {
+    
+    uint32_t i = 0;
+    
+    aux_block rtn = (aux_block) calloc(1, sizeof(struct aux_block_t));
+    
+    rtn->block_length = 10;
+    
+    rtn->aux_str = (char**) calloc(MAX_AUX_FIELDS, sizeof(char*));
+    
+    // allocate the memory for each of the lines
+    for (i = 0; i < MAX_AUX_FIELDS; i++) {
+        rtn->aux_str[i] = (char*) calloc(MAX_AUX_LENGTH, sizeof(char));
+    }
+    
+    rtn->most_common = (char**) calloc(MOST_COMMON_LIST_SIZE, sizeof(char*));
+    // allocate the memory for each of the lines
+    for (i = 0; i < MOST_COMMON_LIST_SIZE; i++) {
+        rtn->most_common[i] = (char*) calloc(MAX_AUX_LENGTH, sizeof(char));
+    }
+
+    // Allocate (and initialize) the models for the aux
+    rtn->models = alloc_aux_models_t();
+    
+    return rtn;
+}
+
+/**
+ *
+ */
 read_block alloc_read_block_t(uint32_t read_length){
     
     read_block rf = (read_block) calloc(1, sizeof(struct read_block_t));
@@ -309,7 +339,6 @@ sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct 
     }
     else{
         // get the read length from input file and move file pointer after headers
-        // coge solo la longitud del primer read (creo)
         sb->read_length = get_read_length(sb->fs);
         // write readLength directly to AS using the codebook model
         compress_int(as, sb->codebook_model, sb->read_length);
@@ -354,6 +383,9 @@ sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct 
     //IDs
     sb->IDs = alloc_id_block();
     
+    //aux
+    sb->aux = alloc_aux_block();
+    
     //RNAMEs
     sb->rnames = alloc_rname_block();
     
@@ -376,7 +408,7 @@ sam_block alloc_sam_models(Arithmetic_stream as, FILE * fin, FILE *fref, struct 
 }
 
 
-uint32_t load_sam_block(sam_block sb){
+uint32_t load_sam_block(sam_block sb){ //NOT IN USE! load_sam_line.
     
     int32_t i = 0, j = 0;
     read_line rline = NULL;
@@ -514,7 +546,9 @@ uint32_t load_sam_line(sam_block sb){
     char *ID_line = *sb->IDs->IDs;
     char *rname_line = *sb->rnames->rnames;
     char *rnext = *sb->rnext->rnext;
-        
+    
+    char **aux_fields = sb->aux->aux_str;
+
     rline->read_length = sb->read_length;
     qvline->columns = sb->read_length;
     
@@ -569,31 +603,24 @@ uint32_t load_sam_line(sam_block sb){
         // Read the AUX fields until end of line, and store the MD field
         int auxCnt = 0;
         while( NULL != (ptr = strtok(NULL, "\t")) ){
-            // Do something
-            
-            //TEST (check if preprocess for aux works fine)
-            uint16_t output = preprocessTagType(ptr);
-            char a1,a2;
-            a1 = output>>8;
-            a2 = output & 0x00FF;
-            char abc[6];
-            uint8_t whatever = inversePreprocessTagType(a1,a2,abc);
-            
-            /*printf("%c%c%c%c%c\n",*ptr,*(ptr+1),*(ptr+2),*(ptr+3),*(ptr+4));
-            printf("%s\n",abc);
-            
-            printf("%d\n",output);*/
-            //
-            
-            
+            //MD:_:_ is a special case
             if (*ptr == 'M' && *(ptr+1) == 'D'){
                 // skip MD:Z:
                 ptr += 5;
                 strcpy(rline->edits, ptr);
-                break;
+                //break;
+            } else {
+                strcpy(aux_fields[auxCnt], ptr);
+                auxCnt++;
+                //if we have reached the max. allowed aux fields, break.
+                if(auxCnt==MAX_AUX_FIELDS) break;
             }
-            auxCnt++;
         }
+        
+        //awful hack to check if the last field has a \n.
+        if(auxCnt!=0) if(aux_fields[auxCnt-1][strlen(aux_fields[auxCnt-1])-1]=='\n') aux_fields[auxCnt-1][strlen(aux_fields[auxCnt-1])-1]=0;
+        
+        sb->aux->aux_cnt = auxCnt;
         
         return 0;
     }

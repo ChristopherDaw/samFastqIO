@@ -182,9 +182,25 @@ double QVs_compress_lossless(Arithmetic_stream as, stream_model* models, qv_line
     uint8_t q_state = 0, prev_state = 0;
     uint32_t columns = line->columns;
     
+    uint8_t prev, temp;
+    prev = line->data[0];
+    temp = 0;
+    
+    
     for (s = 0; s < columns; ++s) {
         
         q_state = line->data[s];
+        
+        /* Funciona peor.
+        if (s!=0){
+            temp = q_state;
+            if (q_state == prev)
+                q_state = QV_ALPHABET_SIZE-1;
+            prev = temp;
+        }
+        */
+        
+        //compress_qv(as, models, 0, q_state);
         compress_qv(as, models, get_qv_model_index(s, prev_state), q_state);
         prev_state = q_state;
     }

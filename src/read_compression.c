@@ -14,17 +14,26 @@
  **********************/
 uint32_t compress_read(Arithmetic_stream as, read_models models, read_line samLine, uint8_t chr_change){
     
-    int tempF, PosDiff, chrPos;
+    int tempF, PosDiff, chrPos, k;
+    uint32_t mask;
+    uint16_t maskedReadVal;
     // For now lets skip the unmapping ones
     if (samLine->invFlag & 4) {
 //        assert(strcmp("*", samLine->cigar) == 0);
         return 1;
     }
+    // compress read length (assume int)
+    for (k=0;k<4;k++) {
+        mask = 0xFF<<(k*8);
+        maskedReadVal = (uint8_t)(models->read_length & mask)>>(k*8);
+        compress_uint8t(as, models->rlength[k], maskedReadVal);
+    }
+    
     // Compress sam line
     PosDiff = compress_pos(as, models->pos, models->pos_alpha, samLine->pos, chr_change);
     tempF = compress_flag(as, models->flag, samLine->invFlag);
     //tempF = compress_flag(as, models->flag, 0);
-    chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF);
+    chrPos = compress_edits(as, models, samLine->edits, samLine->cigar, samLine->read, PosDiff, tempF, &(samLine->cigarFlags));
     
     assert(samLine->pos  == chrPos);
 
@@ -250,16 +259,20 @@ uint32_t compress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref,
 /*****************************************
  * Compress the edits
  ******************************************/
-uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t deltaP, uint8_t flag){
+uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char *cigar, char *read, uint32_t deltaP, uint8_t flag, uint8_t* cigarFlags){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, lastSnp = 1;
     int i = 0, tmpi = 0, M = 0, I = 0, D = 0, pos = 0, ctr = 0, prevPosI = 0, prevPosD = 0, ctrS = 0, S = 0;
     uint32_t delta = 0;
+    char recCigar[MAX_CIGAR_LENGTH];
+
     
     //uint32_t k, tempValue, tempSum = 0;
     
     uint32_t posRef, posRead, tmpM, tmpI, tmpD, tmpS, match;
     char *tmpcigar, *tmpEdits;
+    char *origCigar = cigar;
+    
     
     // pos in the reference
     cumsumP = cumsumP + deltaP - 1;// DeltaP is 1-based
@@ -272,9 +285,22 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
     
     uint32_t prev_pos = 0;
     
+    
+    //ALERTA AQUI y en su analogo descomp.: si pasamos por aqui no hacemos nada con el cigar... (arreglado ya?)
     if(strcmp(edits, rs->_readLength) == 0){
         // The read matches perfectly.
         compress_match(as, rs->match, 1, deltaP);
+        
+        // We need to do the cigar stuff here bcos of the return, this is a copypaste from the last of the function.
+        
+        // In this case the output of reconstructCigar must be (read_length)M.
+        reconstructCigar(Dels,  Insers,  numDels, numIns, rs->read_length, recCigar);
+        
+        *cigarFlags = 0;
+        if(strcmp(recCigar,origCigar)==0) {
+            *cigarFlags = 1;
+        }
+        
         return cumsumP;
     }
     
@@ -578,6 +604,18 @@ uint32_t compress_edits(Arithmetic_stream as, read_models rs, char *edits, char 
         
         compress_chars(as, rs->chars, O, Insers[i].targetChar);
     }
+    
+    
+    //Check if cigar can be reconstructed from Dels/Insers
+    reconstructCigar(Dels,  Insers,  numDels, numIns, rs->read_length, recCigar);
+    
+    *cigarFlags = 0;
+    if(strcmp(recCigar,origCigar)==0) {
+        *cigarFlags = 1;
+    }
+    
+    //printf("%s\t%s\n",origCigar,recCigar);
+
     
     return cumsumP;
     

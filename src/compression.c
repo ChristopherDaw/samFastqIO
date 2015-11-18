@@ -23,14 +23,14 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
         case 0:
             if ((sline->flag & 16) == 16) {
                 // We need to inverse the read and QV
-                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t",
+                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d",
                         sline->ID,
                         sline->flag,
                         sline->rname,
                         sline->pos,
                         sline->mapq,
-                        //sline->cigar,
-                        foo,
+                        sline->cigar,
+                        //foo,
                         sline->rnext,
                         sline->pnext,
                         sline->tlen
@@ -43,22 +43,29 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
                 for (i = sline->readLength - 1; i >=0 ; --i)
                     fputc(sline->quals[i], fs);
                 
+                fputc('\t', fs);
+                
+                fprintf(fs, "%s",sline->aux);
+                
                 fputc('\n', fs);
             }
             else{
-                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t %s \t %s\n",
+                
+                //before: "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t %s \t %s\n",
+                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t %s \t %s \t %s\n",
                    sline->ID,
                    sline->flag,
                    sline->rname,
                    sline->pos,
                    sline->mapq,
-                   //sline->cigar,
-                   foo,
+                   sline->cigar,
+                   //foo,
                    sline->rnext,
                    sline->pnext,
                    sline->tlen,
                    sline->read,
-                   sline->quals
+                   sline->quals,
+                   sline->aux
                    );
             }
             break;
@@ -101,9 +108,16 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     
     compress_read(as, samBlock->reads->models, samBlock->reads->lines, chr_change);
     
+    //At the end of compress_edits (in compress_read) happens the computation of whether we can recover the cigar just from the indels data or not, so the cigar compression must be done after compress_read.
+    
+    //compress_cigar(as, samBlock->reads->models, samBlock->reads->lines->cigar, samBlock->reads->lines->cigarFlags);
+    
+    
     compress_tlen(as, samBlock->tlen->models, *samBlock->tlen->tlen);
     
     compress_pnext_raw(as, samBlock->pnext->models,  samBlock->reads->lines->pos, *samBlock->pnext->pnext);
+    
+    //compress_aux(as, samBlock->aux->models, samBlock->aux->aux_str, samBlock->aux->aux_cnt, samBlock->aux);
     
     //compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->tlen->tlen, *samBlock->pnext->pnext, (*samBlock->rnext->rnext[0] != '='), samBlock->reads->lines->cigar);
     
@@ -116,7 +130,7 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     return 1;
 }
 
-int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness){
+int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness) {
     
     int32_t chr_change = 0;
     
@@ -124,6 +138,8 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
     
     struct sam_line_t sline;
     
+    
+    //This is only for fixed length? i think so.
     sline.readLength = samBlock->read_length;
     
     //printf("Decompressing the block...\n");
@@ -154,9 +170,13 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
         
     decompression_flag = decompress_read(as,samBlock, chr_change, &sline);
     
+    //decompress_cigar(as, samBlock, &sline);
+    
     decompress_tlen(as, samBlock->tlen->models, &sline.tlen);
     
     decompress_pnext(as, samBlock->pnext->models, sline.pos, sline.tlen, samBlock->read_length, &sline.pnext, sline.rnext[0] != '=', NULL);
+    
+    //decompress_aux(as, samBlock->aux, sline.aux);
         
     if (lossiness == LOSSY) {
             QVs_decompress(as, samBlock->QVs, decompression_flag, sline.quals);
@@ -170,6 +190,45 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
 }
 
 
+int compress_most_common_list(Arithmetic_stream as, aux_block aux)
+{
+    uint8_t n,i,l,k;
+
+    aux_models models = aux->models;
+    n = aux->most_common_size;
+    compress_uint8t(as,models->most_common_list[0],n);
+    
+    for (i=0;i<n;i++) {
+        l = strlen(aux->most_common[i]);
+        compress_uint8t(as,models->most_common_list[0],l);
+        for(k=0;k<l;k++)
+            compress_uint8t(as,models->most_common_list[0],aux->most_common[i][k]);
+    }
+    
+    return 1;
+}
+
+
+int decompress_most_common_list(Arithmetic_stream as, aux_block aux)
+{
+    uint8_t n,i,l,k;
+
+    aux_models models = aux->models;
+    n = decompress_uint8t(as,models->most_common_list[0]);
+    
+    aux->most_common_size = n;
+    
+    char buffer[256];
+    for (i=0;i<n;i++) {
+        l = decompress_uint8t(as,models->most_common_list[0]);
+        for(k=0;k<l;k++)
+            buffer[k]=decompress_uint8t(as,models->most_common_list[0]);
+        buffer[k]='\0';
+        
+        strcpy(aux->most_common[i],buffer);
+        printf("%d -> %s\n",i,aux->most_common[i]);
+    }
+}
 
 
 /*int compress_block(Arithmetic_stream as, sam_block samBlock){
@@ -322,6 +381,13 @@ void* compress(void *thread_info){
     // Allocs the different blocks and all the models for the Arithmetic
     sam_block samBlock = alloc_sam_models(as, info.fsam, info.fref, &opts, info.mode);
     
+    // Create the list of the most common aux fields
+    create_most_common_list(samBlock);
+    
+    // 'Compress' (very naive approach) the most_common_list.
+    compress_most_common_list(as,samBlock->aux);
+    
+    
     if (info.lossiness == LOSSY) {
         compress_int(as, samBlock->codebook_model, LOSSY);
         initialize_qv_model(as, samBlock->QVs, COMPRESSION);
@@ -346,7 +412,6 @@ void* compress(void *thread_info){
     compress_file_size = encoder_last_step(as);
     
     printf("Final Size: %lld\n", compress_file_size);
-    
     //printf("%f Million reads compressed using %f MB.\n", (double)n/1000000.0, (double)compress_file_size/1000000.0);
     
     // free(samLine->cigar), free(samLine.edits), free(samLine.read_), free(samLine.identifier), free(samLine.refname);
@@ -373,6 +438,8 @@ void* decompress(void *thread_info){
     Arithmetic_stream as = alloc_arithmetic_stream(info->mode, info->fcomp);
     
     sam_block samBlock = alloc_sam_models(as, info->fsam, info->fref, info->qv_opts, DECOMPRESSION);
+    
+    decompress_most_common_list(as, samBlock->aux);
     
     info->lossiness = decompress_int(as, samBlock->codebook_model);
     

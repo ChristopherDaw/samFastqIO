@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		C9CAC1131BCF2E4400E7C0E3 /* aux_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aux_data.h; sourceTree = "<group>"; };
 		C9DBF7C51B7EA25600976B3A /* Arithmetic_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Arithmetic_stream.h; sourceTree = "<group>"; };
 		C9DBF7C61B7EA25600976B3A /* distortion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = distortion.h; sourceTree = "<group>"; };
 		C9DBF7C71B7EA25600976B3A /* pmf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pmf.h; sourceTree = "<group>"; };
@@ -44,7 +45,6 @@
 		C9DBF7E81B7EA25600976B3A /* stream_model.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stream_model.c; sourceTree = "<group>"; };
 		C9DBF7E91B7EA25600976B3A /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = util.c; sourceTree = "<group>"; };
 		C9DBF7EA1B7EA25600976B3A /* well.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = well.c; sourceTree = "<group>"; };
-		C9FD93541B922A7700A76010 /* aux_compression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aux_compression.h; sourceTree = "<group>"; };
 		C9FD93551B922A8600A76010 /* aux_compression.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aux_compression.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -90,7 +90,7 @@
 				C9DBF7CD1B7EA25600976B3A /* stream_model.h */,
 				C9DBF7CE1B7EA25600976B3A /* util.h */,
 				C9DBF7CF1B7EA25600976B3A /* well.h */,
-				C9FD93541B922A7700A76010 /* aux_compression.h */,
+				C9CAC1131BCF2E4400E7C0E3 /* aux_data.h */,
 			);
 			path = include;
 			sourceTree = "<group>";

@@ -336,13 +336,18 @@ int decompress_tlen(Arithmetic_stream as, tlen_models models, int32_t* tlen){
 
 int compress_id(Arithmetic_stream as, id_models models, char *id){
     
-    static char prev_ID[1024] = {0};
-    static uint32_t prev_tokens_ptr[1024] = {0};
+    static char prev_ID[1024] = {0}; //As it is static, it wont be init. to 0s each time but it will keep the value (at the end of the function is updated with the ID that has been just analyzed).
+    static uint32_t prev_tokens_ptr[1024] = {0}; //same here
     uint8_t token_len = 0, match_len = 0;
     uint32_t i = 0, k = 0, token_ctr = 0, digit_value = 0, digit_model = 0, prev_digit = 0;
     int delta = 0;
     
     char *id_ptr = id, *id_ptr_tok = NULL;
+    
+    //token_len: the length of the token under study that we've already studied.
+    //match_len: the no. of matches so far between the current token and previous.
+    //token_ctr: Counter with the no. of the token being analyzed (starts from 0)
+    //prev_tokens_ptr: In which position do the tokens start in the prev_ID. E.g., the second token (token_ctr=1), starts in prev_token_ptr[1]
     
     while (*id_ptr != 0) {
         match_len += (*id_ptr == prev_ID[prev_tokens_ptr[token_ctr] + token_len]), token_len++;
@@ -448,6 +453,8 @@ int compress_id(Arithmetic_stream as, id_models models, char *id){
 
         }
         
+        
+        //For the first time we enter the while, token_ctr=0,i=0, so obviously the first token will start at position 0. Then i is updated with the length of the token we've just analyzed, and after the second while i will be pointing to where the second token starts... and so on.
         prev_tokens_ptr[token_ctr] = i;
         i += token_len;
         id_ptr = id_ptr_tok;
@@ -564,3 +571,227 @@ int decompress_id(Arithmetic_stream as, id_models model, char *id){
     return 1;
 }
 
+int compress_aux(Arithmetic_stream as, aux_models models, char **aux_str, uint8_t aux_cnt, aux_block aux)
+{
+    //We first compress the no. of aux fields
+    compress_uint8t(as, models->qAux[0], aux_cnt);
+    
+    char *ptr, *ptr_data;
+    uint8_t mappedChar1, mappedChar2, mappedType, rawType;
+    
+    uint32_t desc_length;
+    
+    int i,j,k; char *auxPtr;
+
+    uint8_t it;
+    uint16_t numericTagType;
+    uint8_t most_common_token; //en el resto definido como 32... hay que cambiar.
+    for(it = 0; it<aux_cnt; it++) {
+        ptr = aux_str[it];
+        
+        most_common_token = get_most_common_token(aux->most_common, aux->most_common_size, ptr);
+        if (most_common_token != aux->most_common_size)
+        {
+            //aux field found in most common list, flag = 1.
+            compress_uint8t(as, models->most_common_flag[0], 1);
+            
+            //send token
+            compress_uint8t(as, models->most_common_values[0], most_common_token);
+            
+            //globalCnt++;
+            //if(globalCnt>400000)printf("%d\n",globalCnt);
+            continue;
+        }
+        //continue;
+        
+        //Aux field not found in most common list, flag = 0.
+        compress_uint8t(as, models->most_common_flag[0], 0);
+        
+        numericTagType = preprocessTagType(ptr, &rawType);
+        if (numericTagType & NOTFOUNDLUTFLAG) {
+            //TagType not in LUT, send LUT flag = 1, then values.
+            compress_uint8t(as, models->tagtypeLUTflag[0], 1);
+            mappedChar1 = (numericTagType & MASKTAGCHAR1) >> 9;
+            mappedChar2 = (numericTagType & MASKTAGCHAR2) >> 3;
+            mappedType = numericTagType & MASKTYPE;
+            
+            compress_uint8t(as,models->tag[0],mappedChar1);
+            compress_uint8t(as,models->tag[1],mappedChar2);
+            
+            if(mappedType == TYPELUTLENGTH) {
+                //Unknown type (not in typeLUT, very unlikely, is it even possible?) send flag 1, then ascii value (rawType).
+                compress_uint8t(as, models->typeLUTflag[0], 1);
+                compress_uint8t(as,models->typeRAW[0],rawType);
+            } else {
+                //Type in typeLUT, send flag 0, then mapped type value.
+                compress_uint8t(as, models->typeLUTflag[0], 0);
+                compress_uint8t(as,models->typeLUT[0],mappedType);
+            }
+        } else {
+            //TagType in tagtypeLUT, send LUTflag = 0, then value.
+            compress_uint8t(as, models->tagtypeLUTflag[0], 0);
+            compress_uint8t(as, models->tagtypeLUT[0], numericTagType & 0xFF);
+        }
+        
+        //We compress the actual data (1st approach: byte per byte)
+        ptr_data = ptr + 5;
+        
+        //Crear enum o algo cuando esta tabla este lista:
+        //TIPOS:
+        //0: int,
+        //1: resto.
+
+        //cambiar a switch
+        if(ptr[3]=='i') {
+            globalCnt++;
+            i = strlen(ptr);
+            auxPtr = ptr+5;
+            //for(j=5;j<i;j++) printf("%c",ptr[j]);
+            k=atoi(auxPtr);
+            if(k<0) {
+                compress_uint8t(as, models->sign_integers[0], 1);
+                k=-k;
+            } else {
+                compress_uint8t(as, models->sign_integers[0], 0);
+            }
+            compress_uint8t(as, models->integers[0], k); //ALERTA! k > 255?
+        } else {
+            desc_length = strlen(ptr_data);
+            if(desc_length>256) desc_length=256;
+            
+            compress_uint8t(as, models->descBytes[0], (uint8_t)desc_length);
+            
+            uint8_t buffer[256] = {0};
+            uint8_t buff_cnt = 0;
+            while (*ptr_data!=0) {
+                compress_uint8t(as, models->iidBytes[0], *ptr_data);
+                ptr_data++;
+            }
+        }
+        
+    }
+    
+    return 1;
+}
+
+int decompress_aux(Arithmetic_stream as, aux_block aux, char* finalLine)
+{
+    //
+    uint8_t aux_fields;
+    
+    uint8_t it, most_common_flag, most_common_token;
+    uint8_t tagtypeLUTflag, typeLUTflag, tagtypeLUTindex, mappedChar1, mappedChar2;
+    char tagChar1, tagChar2, typeChar;
+    uint8_t desc_length;
+    char auxFieldString[MAX_AUX_LENGTH] = {0};
+    
+    char* finalLine_ptr = finalLine;
+    
+    aux_models models = aux->models;
+    
+    aux_fields = decompress_uint8t(as, models->qAux[0]);
+    
+    for(it = 0; it<aux_fields; it++) {
+        
+        most_common_flag = decompress_uint8t(as, models->most_common_flag[0]);
+        
+        if(most_common_flag == 1) {
+            //The aux field is in the most common list.
+            most_common_token = decompress_uint8t(as, models->most_common_values[0]);
+            strcpy(finalLine_ptr,aux->most_common[most_common_token]);
+            finalLine_ptr += strlen(aux->most_common[most_common_token]);
+            *finalLine_ptr = '\t';
+            finalLine_ptr++;
+            continue;
+        }
+        //tag & type dec.
+        tagtypeLUTflag = decompress_uint8t(as, models->tagtypeLUTflag[0]);
+        
+        if(tagtypeLUTflag==1) {
+            mappedChar1 = decompress_uint8t(as,models->tag[0]);
+            mappedChar2 = decompress_uint8t(as,models->tag[1]);
+            tagChar1 = inverseCharMap(mappedChar1);
+            tagChar2 = inverseCharMap(mappedChar2);
+            
+            typeLUTflag = decompress_uint8t(as, models->typeLUTflag[0]);
+            if(typeLUTflag==1) {
+                typeChar = decompress_uint8t(as,models->typeRAW[0]);
+            } else {
+                typeChar = typeLUT[decompress_uint8t(as,models->typeLUT[0])];
+            }
+        } else {
+            tagtypeLUTindex = decompress_uint8t(as, models->tagtypeLUT[0]);
+            tagChar1 = tagTypeLUT[tagtypeLUTindex][0];
+            tagChar2 = tagTypeLUT[tagtypeLUTindex][1];
+            typeChar = tagTypeLUT[tagtypeLUTindex][2];
+        }
+        
+        
+        //cambiar a switch
+        uint8_t sign; int value;
+        
+        uint8_t buffer[256] = {0};
+        uint8_t buff_cnt;
+        
+        if(typeChar == 'i') {
+            sign = decompress_uint8t(as, models->sign_integers[0]);
+            value = decompress_uint8t(as, models->integers[0]); //alerta (ver analogo en comp)
+            if(sign==1) value = -value;
+            sprintf(buffer,"%d",value);
+            desc_length = strlen(buffer);
+            buffer[desc_length] = '\t';
+        } else {
+            //value dec.
+            desc_length = decompress_uint8t(as, models->descBytes[0]);
+
+            for (buff_cnt=0;buff_cnt<desc_length;buff_cnt++) {
+                buffer[buff_cnt] = decompress_uint8t(as, models->iidBytes[0]);
+            }
+            buffer[buff_cnt] = '\t';
+        }
+        
+        // recomp.
+        auxFieldString[0] = tagChar1;
+        auxFieldString[1] = tagChar2;
+        auxFieldString[2] = ':';
+        auxFieldString[3] = typeChar;
+        auxFieldString[4] = ':';
+        
+        char* str_pnt;
+        str_pnt = auxFieldString+5;
+        strcpy(str_pnt,buffer);
+        
+        strcpy(finalLine_ptr,auxFieldString);
+        
+        finalLine_ptr += 5+desc_length+1; // tag:type:desc\t
+        
+    }
+    
+    *(finalLine_ptr-1) = 0; //We dont want the last tab
+    
+    return 1;
+    
+}
+
+
+int compress_cigar(Arithmetic_stream as, read_models models, char *cigar, uint8_t cigarFlags) {
+    
+    //We check if the cigarFlags == 1. If so, then with the indels is enough to recover the cigar.
+    
+    //Otherwise, we compress the whole cigar.
+    uint8_t cigar_length;
+    cigar_length = strlen(cigar);
+    
+    if(cigarFlags==1) {
+        compress_uint8t(as, models->cigarFlags[0], 1);
+    } else {
+        compress_uint8t(as, models->cigarFlags[0], 0);
+        compress_uint8t(as, models->cigar[0],cigar_length);
+        while(*cigar) {
+            compress_uint8t(as, models->cigar[0],*cigar);
+            cigar++;
+        }
+    }
+    
+    return 1;
+}

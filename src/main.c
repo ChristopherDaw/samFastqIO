@@ -79,6 +79,7 @@ int main(int argc, const char * argv[]) {
     
     // No dependency, cross-platform command line parsing means no getopt
     // So we need to settle for less than optimal flexibility (no combining short opts, maybe that will be added later)
+    
     i = 1;
     while (i < argc) {
         // Handle file names and reject any other untagged arguments

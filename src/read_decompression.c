@@ -56,19 +56,59 @@ int store_reference_in_memory(FILE* refFile){
  **********************/
 uint32_t decompress_read(Arithmetic_stream as, sam_block sb, uint8_t chr_change, struct sam_line_t *sline){
     
-    int invFlag, tempP;
+    int invFlag, tempP, k;
+    uint32_t readLen;
+    uint16_t maskedReadVal;
     
     read_models models = sb->reads->models;
+    
+    
+    // Decompress read length (4 uint8)
+    readLen = 0;
+    for (k=0;k<4;k++) {
+        maskedReadVal = decompress_uint8t(as, models->rlength[k]);
+        readLen = readLen | maskedReadVal<<(k*8);
+    }
+    
+    
     
     // Decompress the read
     tempP = decompress_pos(as, models->pos, models->pos_alpha, chr_change, &sline->pos);
     
     invFlag = decompress_flag(as, models->flag, &sline->flag);
     
-    reconstruct_read(as, models, tempP, invFlag, sline->read);
+    reconstruct_read(as, models, tempP, invFlag, sline->read, readLen, sline->cigar);
     
     return invFlag;
 }
+
+
+/************************
+ * Decompress the cigar
+ **********************/
+uint32_t decompress_cigar(Arithmetic_stream as, sam_block sb, struct sam_line_t *sline)
+{
+    uint8_t cigarFlags;
+    int cigarCtr,cigarLen;
+    
+    read_models models = sb->reads->models;
+    
+    
+    // Decompress cigarFlags
+    cigarFlags = decompress_uint8t(as,models->cigarFlags[0]);
+    
+    if(cigarFlags==0) {
+        //The cigar is not the recCigar.
+        cigarLen = decompress_uint8t(as,models->cigar[0]);
+        for(cigarCtr = 0; cigarCtr<cigarLen; cigarCtr++)
+            sline->cigar[cigarCtr] = decompress_uint8t(as,models->cigar[0]);
+        
+        sline->cigar[cigarCtr] = '\0';
+    }
+    
+    return 1;
+}
+
 
 
 /***********************
@@ -293,15 +333,20 @@ uint8_t decompress_chars(Arithmetic_stream a, stream_model *c, enum BASEPAIR ref
 /*****************************************
  * Reconstruct the read
  ******************************************/
-uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char *read){
+uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos, uint8_t invFlag, char *read, uint32_t readLen, char* recCigar){
     
     unsigned int numIns = 0, numDels = 0, numSnps = 0, delPos = 0, ctrPos = 0, snpPos = 0, insPos = 0;
     uint32_t currentPos = 0, prevIns = 0, prev_pos = 0, delta = 0, deltaPos = 0;
+    
+    uint32_t Dels[MAX_READ_LENGTH];
+    ins Insers[MAX_READ_LENGTH];
     
     static uint32_t prevPos = 0;
     
     unsigned int ctrDels = 0, readCtr = 0;
     int i = 0;
+    uint8_t tmpChar;
+    unsigned int returnVal;
     
     uint8_t match;
     
@@ -347,6 +392,10 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
         }
         
         //fwrite(read, models->read_length + 3, sizeof(char), fs);
+        
+        //Reconstructed cigar (it might not be the correct one, that will be known after we decompress the cigar data)
+        //This is also done at the end of the function, but it has to be done here bcos otherwise we return without having reconstructed the cigar.
+        reconstructCigar(Dels, Insers, numDels, numIns, readLen, recCigar);
         return 1;
     }
     
@@ -370,6 +419,8 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
         
         delPos = decompress_var(as, models->var, prev_pos, invFlag);
         prev_pos += delPos;
+        
+        Dels[ctrDels] = delPos;
         
         // Do not take the deleted characters from the reference
         for (ctrPos = 0; ctrPos<delPos; ctrPos++){
@@ -423,7 +474,12 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                     read[readCtr++] = tempRead[currentPos], currentPos++;
                 
                 // write the insertion
-                read[readCtr++] = decompress_chars(as, models->chars, O);
+                tmpChar = decompress_chars(as, models->chars, O);
+                read[readCtr++] = tmpChar;
+                
+                Insers[i].pos = insPos;
+                Insers[i].targetChar = tmpChar;
+                
             }
             
             // write the rest of the read
@@ -431,7 +487,8 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 read[readCtr++] = tempRead[currentPos], currentPos++;
             
             //fwrite(read, models->read_length + 3, sizeof(char), fs);
-            return 0;
+            returnVal = 0;
+            break;
             
             // There is an inversion
         case 1:
@@ -448,6 +505,9 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 // Add the insertion
                 tempRead[insPos] = decompress_chars(as, models->chars, O);
                 prevIns = insPos + 1;
+                
+                Insers[i].pos = insPos;
+                Insers[i].targetChar = tmpChar;
             }
             
             // write the read inverted
@@ -455,11 +515,19 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 read[readCtr++] = bp_complement(tempRead[ models->read_length - 1 - ctrPos]);
             
             //fwrite(read, models->read_length + 3, sizeof(char), fs);
-            return 1;
+            returnVal = 1;
+            break;
             
             
         default:
             printf("ERROR: invFLAG different from 0 and 1\n");
-            return 2;
+            returnVal = 2;
+            break;
     }
+    
+    
+    //Reconstructed cigar (it might not be the correct one, that will be known after we decompress the cigar data)
+    reconstructCigar(Dels, Insers, numDels, numIns, readLen, recCigar);
+    
+    return returnVal;
 }
