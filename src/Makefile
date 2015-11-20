@@ -7,8 +7,9 @@ OBJ=$(SRC:.c=.o)
 CC=gcc
 RM=rm -f
 
-CFLAGS=-ffast-math -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Wall -I../include -I/usr/local/include  -D__APPLE__
-LDFLAGS=-L/usr/local/lib -lc -lm -lssh
+#CFLAGS=-ffast-math -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Wall -I../include -I/usr/local/include  -D__APPLE__
+CFLAGS=-ffast-math -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Wall -I../include -I/usr/local/include  -DLINUX
+LDFLAGS=-L/usr/local/lib -lc -lm -lssh -lpthread
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
