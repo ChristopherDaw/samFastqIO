@@ -228,6 +228,7 @@ int decompress_most_common_list(Arithmetic_stream as, aux_block aux)
         strcpy(aux->most_common[i],buffer);
         printf("%d -> %s\n",i,aux->most_common[i]);
     }
+    return 1;
 }
 
 
