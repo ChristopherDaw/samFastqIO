@@ -23,7 +23,7 @@ int print_line(struct sam_line_t *sline, uint8_t print_mode, FILE *fs){
         case 0:
             if ((sline->flag & 16) == 16) {
                 // We need to inverse the read and QV
-                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d",
+                fprintf(fs, "%s \t %d \t %s \t %d \t %d \t %s \t %s \t %d \t %d \t",
                         sline->ID,
                         sline->flag,
                         sline->rname,
