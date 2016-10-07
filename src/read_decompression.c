@@ -497,6 +497,8 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
             for (i = 0; i < numIns; i++){
                 
                 insPos = decompress_var(as, models->var, prev_pos, invFlag);
+                Insers[i].pos = insPos;
+                
                 prev_pos += insPos;
                 insPos += prevIns;
                 // move the read one position to the left (make room for the insertion)
@@ -506,7 +508,7 @@ uint32_t reconstruct_read(Arithmetic_stream as, read_models models, uint32_t pos
                 tempRead[insPos] = decompress_chars(as, models->chars, O);
                 prevIns = insPos + 1;
                 
-                Insers[i].pos = insPos;
+                
                 Insers[i].targetChar = tmpChar;
             }
             
