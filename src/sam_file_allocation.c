@@ -606,15 +606,15 @@ uint32_t load_sam_line(sam_block sb){
             //MD:_:_ is a special case
             if (*ptr == 'M' && *(ptr+1) == 'D'){
                 // skip MD:Z:
-                ptr += 5;
-                strcpy(rline->edits, ptr);
+                //ptr += 5;
+                strcpy(rline->edits, ptr+5);
                 //break;
-            } else {
+            } //else {
                 strcpy(aux_fields[auxCnt], ptr);
                 auxCnt++;
                 //if we have reached the max. allowed aux fields, break.
                 if(auxCnt==MAX_AUX_FIELDS) break;
-            }
+            //}
         }
         
         //awful hack to check if the last field has a \n.
