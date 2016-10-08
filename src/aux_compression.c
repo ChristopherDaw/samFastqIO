@@ -143,9 +143,9 @@ uint8_t create_most_common_list(sam_block sb) {
             ptrLen = strlen(ptr);
             if(ptr[ptrLen-1]=='\n') ptr[ptrLen-1] = 0;
             
-            if (*ptr == 'M' && *(ptr+1) == 'D'){
+            //if (*ptr == 'M' && *(ptr+1) == 'D'){
                 // skip MD:Z: (special case)
-            } else {
+            //} else {
                 //Check if exists in list, otherwise add.
                 appearFlag = 0;
                 for (j=0;j<different_aux_fields_cnt;j++) {
@@ -169,7 +169,7 @@ uint8_t create_most_common_list(sam_block sb) {
                 }
                 
                 total_analyzed_aux_fields_cnt++;
-            }
+            //}
             
         }
         analyzedLines++;
