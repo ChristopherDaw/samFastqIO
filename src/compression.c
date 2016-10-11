@@ -110,14 +110,14 @@ int compress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)  
     
     //At the end of compress_edits (in compress_read) happens the computation of whether we can recover the cigar just from the indels data or not, so the cigar compression must be done after compress_read.
     
-    //compress_cigar(as, samBlock->reads->models, samBlock->reads->lines->cigar, samBlock->reads->lines->cigarFlags);
+    compress_cigar(as, samBlock->reads->models, samBlock->reads->lines->cigar, samBlock->reads->lines->cigarFlags);
     
     
     compress_tlen(as, samBlock->tlen->models, *samBlock->tlen->tlen);
     
     compress_pnext_raw(as, samBlock->pnext->models,  samBlock->reads->lines->pos, *samBlock->pnext->pnext);
     
-    //compress_aux(as, samBlock->aux->models, samBlock->aux->aux_str, samBlock->aux->aux_cnt, samBlock->aux);
+    compress_aux(as, samBlock->aux->models, samBlock->aux->aux_str, samBlock->aux->aux_cnt, samBlock->aux);
     
     //compress_pnext(as, samBlock->pnext->models, samBlock->reads->lines->pos, *samBlock->tlen->tlen, *samBlock->pnext->pnext, (*samBlock->rnext->rnext[0] != '='), samBlock->reads->lines->cigar);
     
@@ -170,13 +170,13 @@ int decompress_line(Arithmetic_stream as, sam_block samBlock, uint8_t lossiness)
         
     decompression_flag = decompress_read(as,samBlock, chr_change, &sline);
     
-    //decompress_cigar(as, samBlock, &sline);
+    decompress_cigar(as, samBlock, &sline);
     
     decompress_tlen(as, samBlock->tlen->models, &sline.tlen);
     
     decompress_pnext(as, samBlock->pnext->models, sline.pos, sline.tlen, samBlock->read_length, &sline.pnext, sline.rnext[0] != '=', NULL);
     
-    //decompress_aux(as, samBlock->aux, sline.aux);
+    decompress_aux(as, samBlock->aux, sline.aux);
         
     if (lossiness == LOSSY) {
             QVs_decompress(as, samBlock->QVs, decompression_flag, sline.quals);
@@ -226,7 +226,7 @@ int decompress_most_common_list(Arithmetic_stream as, aux_block aux)
         buffer[k]='\0';
         
         strcpy(aux->most_common[i],buffer);
-        printf("%d -> %s\n",i,aux->most_common[i]);
+        //printf("%d -> %s\n",i,aux->most_common[i]);
     }
     return 1;
 }
